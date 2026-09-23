@@ -42,3 +42,6 @@ __screenshots__/
 # Claude Code hook state and personal settings
 .claude/state/
 .claude/settings.local.json
+
+# Firebase CLI deploy cache
+.firebase/
