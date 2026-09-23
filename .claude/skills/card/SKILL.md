@@ -64,7 +64,7 @@ The PR title and body become the squash commit on main, so they follow the commi
 
    If the card has no link, ask for it.
 
-4. Follow-up commits go on the same branch (`git push`). After each push, rewrite the body with `gh pr edit --body-file <file>` so it describes the whole change, not just the first commit.
+4. Follow-up commits go on the same branch (`git push`). After each push, rewrite the body so it describes the whole change, not just the first commit: `gh api -X PATCH repos/{owner}/{repo}/pulls/<number> -F body=@<file>`. (`gh pr edit` fails on gh 2.46 with a Projects (classic) deprecation error.)
 
 ## 6. Summarize
 
