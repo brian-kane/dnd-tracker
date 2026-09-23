@@ -12,7 +12,9 @@ Engineering principles in `.claude/rules/engineering-principles.md` are always i
 - **Summaries:** at most 5 bullets. Show evidence (relevant command output), never just "it works". No long explanations unless asked. Say in one sentence what each new file is for.
 - Keep changes scoped to the task. If something is ambiguous, ask instead of guessing.
 - **Definition of done:** `npm run check` passes (typecheck, tests, lint); README and CLAUDE.md are still accurate if behavior or commands changed.
-- **Workflow:** work is tracked in Trello. Lists: Parked, Up Next, Doing, Playtest, Done. Labels: Feature, Bug, Tooling. Card titles are "Subject: outcome". Commits are "type(subject): outcome" with a lowercase subject; Feature → `feat`, Bug → `fix`, Tooling → `chore`/`ci`/`build`. Example: `feat(lawrence): live HP that survives reload`. No Co-Authored-By or AI attribution trailers. Use `/card` to work a card.
+- **Workflow:** work is tracked in Trello. Lists: Parked, Up Next, Doing, Playtest, Done. Labels: Feature, Bug, Tooling. Card titles are "Subject: outcome". Use `/card` to work a card.
+- **Commit format:** subject line `type(subject): outcome` with a lowercase subject, at most 72 chars (aim for 50); Feature → `feat`, Bug → `fix`, Tooling → `chore`/`ci`/`build`. Then a blank line and a bullet body wrapped at 72 describing what changed. When there's a card, the last line is `Card: <trello link>`. No Co-Authored-By or AI attribution trailers. Example: `chore(agent): infrastructure setup`.
+- **Branches and PRs:** one branch per card (`<type>/<slug>`, e.g. `feat/lawrence-live-hp`). Branch commits use the subject format but are working history; the PR title and body are what land on main, as the squash commit's subject and body. So the PR body is in the commit body format, and is updated to describe the whole change whenever more commits are pushed. Main is protected: no direct pushes, and merging needs the CI `check` and `pr-title` checks to pass. "Ship it" squash-merges the PR and deletes the branch.
 
 ## Stack (decided — don't propose alternatives)
 
