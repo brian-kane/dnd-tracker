@@ -13,6 +13,7 @@ Engineering principles in `.claude/rules/engineering-principles.md` are always i
 - Keep changes scoped to the task. If something is ambiguous, ask instead of guessing.
 - **Definition of done:** `npm run check` passes (typecheck, tests, lint); README and CLAUDE.md are still accurate if behavior or commands changed.
 - **Workflow:** work is tracked in Trello. Lists: Parked, Up Next, Doing, Playtest, Done. Labels: Feature, Bug, Tooling. Card titles are "Subject: outcome". Commits are "type(subject): outcome" with a lowercase subject; Feature → `feat`, Bug → `fix`, Tooling → `chore`/`ci`/`build`. Example: `feat(lawrence): live HP that survives reload`. No Co-Authored-By or AI attribution trailers. Use `/card` to work a card.
+- **Branches and PRs:** one branch per card (`<type>/<slug>`, e.g. `feat/lawrence-live-hp`), one PR titled like the commit. Main is protected: no direct pushes, and merging needs the CI `check` to pass. "Ship it" squash-merges the PR and deletes the branch.
 
 ## Stack (decided — don't propose alternatives)
 
