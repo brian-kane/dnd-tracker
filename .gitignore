@@ -38,3 +38,7 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# Claude Code hook state and personal settings
+.claude/state/
+.claude/settings.local.json
