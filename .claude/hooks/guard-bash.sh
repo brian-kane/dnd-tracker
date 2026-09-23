@@ -14,16 +14,26 @@ block() {
   exit 2
 }
 
-# Force-push: --force, --force-with-lease, -f (alone or combined), or a +refspec.
-if grep -Eq '(^|[^[:alnum:]])git([[:space:]].*)?[[:space:]]push([[:space:]]|$)' <<<"$cmd"; then
-  push_args=$(sed -E 's/.*[[:space:]]push([[:space:]]|$)/ /' <<<"$cmd")
+# Split into one command per line on ;, &&, ||, | and newlines, so each check sees only
+# the command it's about.
+segments() {
+  sed -E 's/(&&|\|\||;|\|)/\n/g' <<<"$1"
+}
+
+# Force-push: --force, --force-with-lease, -f (alone or combined), or a +refspec, on the
+# git push itself. Quoted text is blanked first so a message that mentions "git push -f",
+# or quotes an && or ;, can't trigger a block or mis-split the command.
+unquoted=$(sed -E "s/\"[^\"]*\"/\"\"/g; s/'[^']*'/''/g" <<<"$cmd")
+while IFS= read -r segment; do
+  grep -Eq '(^|[^[:alnum:]])git([[:space:]].*)?[[:space:]]push([[:space:]]|$)' <<<"$segment" || continue
+  push_args=$(sed -E 's/.*[[:space:]]push([[:space:]]|$)/ /' <<<"$segment")
   if grep -Eq '(^|[[:space:]])(--force|--force-with-lease|-[a-zA-Z]*f[a-zA-Z]*)([=[:space:]]|$)|[[:space:]]\+[^[:space:]]' <<<"$push_args"; then
     block "force-push is not allowed."
   fi
-fi
+done < <(segments "$unquoted")
 
-# Check each command separately (split on ;, &&, ||, | and newlines), so free text such as
-# a commit message mentioning "rm" or ".git" doesn't trigger a block.
+# Check each command separately, so free text such as a commit message mentioning "rm"
+# or ".git" doesn't trigger a block. Quotes are kept here: rm's path arguments matter.
 while IFS= read -r segment; do
   # Anything that deletes .git: rm/rmdir/unlink with a .git path, or find on .git with -delete.
   if [[ "$segment" =~ ^[[:space:]]*(sudo[[:space:]]+)?(rm|rmdir|unlink)[[:space:]] ]] \
@@ -57,6 +67,6 @@ while IFS= read -r segment; do
       *) block "rm -rf outside the project folder ($p → $resolved)." ;;
     esac
   done
-done < <(sed -E 's/(&&|\|\||;|\|)/\n/g' <<<"$cmd")
+done < <(segments "$cmd")
 
 exit 0
