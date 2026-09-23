@@ -25,15 +25,15 @@ Engineering principles in `.claude/rules/engineering-principles.md` are always i
 
 ## Commands
 
-| Command             | What it does                                                  |
-| ------------------- | ------------------------------------------------------------- |
-| `npm run dev`       | Vite dev server with hot reload.                              |
-| `npm run build`     | Type-check and build for production into `dist/`.             |
-| `npm run check`     | Typecheck + tests + lint (no auto-fix). Same as CI and hooks. |
-| `npm run typecheck` | `vue-tsc --build`.                                            |
-| `npm test`          | Vitest single pass (`npm run test:unit` for watch mode).      |
-| `npm run lint`      | oxlint then ESLint, auto-fixing what they can.                |
-| `npm run format`    | Prettier on `src/`.                                           |
+| Command             | What it does                                                               |
+| ------------------- | -------------------------------------------------------------------------- |
+| `npm run dev`       | Vite dev server with hot reload.                                           |
+| `npm run build`     | Type-check and build for production into `dist/`.                          |
+| `npm run check`     | Typecheck + tests + lint + hook tests (no auto-fix). Same as CI and hooks. |
+| `npm run typecheck` | `vue-tsc --build`.                                                         |
+| `npm test`          | Vitest single pass (`npm run test:unit` for watch mode).                   |
+| `npm run lint`      | oxlint then ESLint, auto-fixing what they can.                             |
+| `npm run format`    | Prettier on `src/`.                                                        |
 
 ## Folder structure
 

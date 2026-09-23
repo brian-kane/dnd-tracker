@@ -19,7 +19,7 @@ Then open the URL Vite prints (usually http://localhost:5173).
 
 ```sh
 npm run build      # type-check and build for production
-npm run check      # typecheck + tests + lint (what CI runs)
+npm run check      # typecheck + tests + lint + hook tests (what CI runs)
 npm run typecheck  # type-check only
 npm test           # run unit tests once
 npm run test:unit  # run unit tests in watch mode
