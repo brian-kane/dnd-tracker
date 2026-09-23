@@ -69,7 +69,7 @@ At most 5 bullets: the PR URL, what changed, what to look at or try in the brows
 
 ## 7. Ship (only when the user says "ship it")
 
-1. `gh pr checks --watch`. If a check fails, stop and report it; GitHub won't allow the merge anyway.
+1. `gh pr checks --watch`. If a check fails, stop and report it; GitHub won't allow the merge anyway. "No checks reported" right after a push means CI hasn't registered yet — wait and rerun, don't merge.
 2. `gh pr merge --squash --delete-branch`. "Ship it" is approval for this merge; the permission prompt is the one confirmation. The squash commit takes the PR title.
 3. `git switch main && git pull --ff-only`, and confirm the squash commit is on main.
 4. (Later: move the card to **Done** in Trello.)
