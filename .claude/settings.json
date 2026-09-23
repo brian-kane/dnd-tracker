@@ -23,12 +23,13 @@
       "Bash(git commit *)",
       "Bash(git switch *)",
       "Bash(git pull --ff-only)",
+      "Bash(git push *)",
       "Bash(gh pr create *)",
       "Bash(gh pr view *)",
+      "Bash(gh pr edit *)",
       "Bash(gh pr checks *)"
     ],
     "ask": [
-      "Bash(git push *)",
       "Bash(gh pr merge *)",
       "Bash(npm install *)",
       "Bash(npm i *)",

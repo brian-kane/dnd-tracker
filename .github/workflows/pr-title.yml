@@ -1,0 +1,25 @@
+name: PR title
+
+# The PR title becomes the squash commit subject on main, so it must match the
+# commit format in CLAUDE.md. "edited" reruns the check when the title changes.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|chore|ci|build)\([a-z0-9-]+\): .+$'
+          if [[ ! "$TITLE" =~ $pattern ]]; then
+            echo "::error::PR title must be 'type(subject): outcome' with type feat|fix|chore|ci|build and a lowercase subject. Got: $TITLE"
+            exit 1
+          fi
+          if (( ${#TITLE} > 72 )); then
+            echo "::error::PR title is ${#TITLE} chars; the limit is 72."
+            exit 1
+          fi
+          echo "OK (${#TITLE} chars): $TITLE"
