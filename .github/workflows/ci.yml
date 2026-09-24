@@ -72,7 +72,7 @@ jobs:
       - name: Report job duration
         if: always()
         run: |
-          target=60
+          target=50
           elapsed=$(( $(date +%s) - ${{ steps.start.outputs.epoch }} ))
           echo "check job took ${elapsed}s (target: ${target}s)" >> "$GITHUB_STEP_SUMMARY"
           if (( elapsed > target )); then

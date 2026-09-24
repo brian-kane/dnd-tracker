@@ -105,10 +105,10 @@ Both deploys use the build that `check` produced and are defined in `.github/wor
 "It's fast" is measured and enforced, not a hope — every PR proves it didn't make things slower.
 
 - **Lighthouse:** the `preview` job runs Lighthouse CI (`treosh/lighthouse-ci-action`) against the real deployed preview, 3 times, taking the median. Budgets are in `lighthouserc.json`:
-  - **Performance score** ≥ 0.95 — Lighthouse's overall rollup of the metrics below.
-  - **LCP** (Largest Contentful Paint) ≤ 1.5s — how long the main content takes to appear; the metric users feel as "is it loaded yet".
-  - **CLS** (Cumulative Layout Shift) ≤ 0.1 — how much visible content jumps around while loading; above this, users misclick.
-  - **TBT** (Total Blocking Time) ≤ 150ms — how long the main thread is too busy to respond to input during load; a lab stand-in for INP, since a scripted run has no real user input to measure INP from.
+  - **Performance score** ≥ 0.98 — Lighthouse's overall rollup of the metrics below. Currently a perfect 1.0.
+  - **LCP** (Largest Contentful Paint) ≤ 600ms — how long the main content takes to appear; the metric users feel as "is it loaded yet". Currently 266–397ms.
+  - **CLS** (Cumulative Layout Shift) ≤ 0.02 — how much visible content jumps around while loading; above this, users misclick. Currently 0.
+  - **TBT** (Total Blocking Time) ≤ 50ms — how long the main thread is too busy to respond to input during load; a lab stand-in for INP, since a scripted run has no real user input to measure INP from. Currently 0–6ms.
   - A budget failure fails the PR. Fork PRs don't get this check — see `SECURITY.md`.
 - **Bundle size:** `scripts/bundle-size.mjs` sums the gzipped size of `dist/assets/*.js` and `*.css` and fails `check` if either exceeds the budget in the script. It also compares against the size from main's own last run (a workflow artifact) and reports the change in the job's step summary; with no baseline yet, it reports the absolute size only.
 - **CI job duration:** the `check` job times itself and warns (doesn't fail) in its step summary if it goes over the target in `.github/workflows/ci.yml`.
