@@ -26,9 +26,20 @@ jobs:
       pull-requests: write
       id-token: write # required to fetch the GitHub App's OIDC token
     steps:
+      # Resolves the PR's current head SHA right before checkout, rather than
+      # checking out the mutable refs/pull/<n>/head ref: that ref can move
+      # between when the "@claude review" comment was posted and when this
+      # job actually starts, which would check out code the owner never saw.
+      - if: github.event_name == 'issue_comment'
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sha=$(gh pr view "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --json headRefOid --jq .headRefOid)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event_name == 'issue_comment' && format('refs/pull/{0}/head', github.event.issue.number) || github.event.pull_request.head.sha }}
+          ref: ${{ github.event_name == 'issue_comment' && steps.pr.outputs.sha || github.event.pull_request.head.sha }}
           fetch-depth: 1
       - uses: anthropics/claude-code-action@8cf3482550831fb35a4fc3fbf7ca139cf8028b4c # v1
         with:

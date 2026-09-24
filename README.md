@@ -95,7 +95,7 @@ The app is hosted on Firebase Hosting (project `dnd-tracker-2c66f`, free Spark p
 - **PR previews:** after CI's `check` job passes, every PR from this repo is deployed to a preview channel, and the URL is posted as a comment on the PR. Previews expire after 7 days.
 - **Live:** merging to main deploys to the live site.
 - **Build info:** the footer shows the commit hash (linked to GitHub) and build time. Builds read the hash from `BUILD_SHA`, falling back to `git rev-parse HEAD`; CI sets it to the PR's head commit, because a PR checkout is GitHub's temporary merge commit.
-- **Security headers:** `firebase.json` sends a CSP, HSTS, `X-Content-Type-Options`, and `Referrer-Policy`. The `preview` job checks they're present, and that the app still renders under the CSP, with `e2e/security-headers.spec.ts`.
+- **Security headers:** `firebase.json` sends a CSP, `X-Content-Type-Options`, and `Referrer-Policy`; Firebase Hosting adds HSTS on its own. The `preview` job checks all four are present, and that the app still renders under the CSP, with `e2e/security-headers.spec.ts`.
 
 Both deploys use the build that `check` produced and are defined in `.github/workflows/ci.yml`. Their only credential is the `FIREBASE_SERVICE_ACCOUNT_DND_TRACKER_2C66F` GitHub secret. See [SECURITY.md](SECURITY.md) for the full threat model and credentials inventory.
 
