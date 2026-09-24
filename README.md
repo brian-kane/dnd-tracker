@@ -104,16 +104,25 @@ Both deploys use the build that `check` produced and are defined in `.github/wor
 
 Permissions in `.claude/settings.json`: Trello reads are allowed; board, list, checklist, inbox, and planner writes always ask. `/card` pre-approves card writes for its first turn (its `allowed-tools`), and the `guard-trello.sh` hook makes every card write other than a move ask anyway, so creating, editing, or archiving cards always prompts.
 
+## PR review
+
+Every PR gets one advisory review comment from Claude, checking the diff against `CLAUDE.md` and the engineering principles, before you look at it yourself. It's defined in `.github/workflows/review.yml`.
+
+- **Setup (one-time):** run `/install-github-app` locally, which installs the Claude GitHub App on this repo and adds the `CLAUDE_CODE_OAUTH_TOKEN` secret. It shares your Pro plan usage limits, the same as a Claude Code session.
+- **Cost:** runs once per PR (on `opened`, not on every push), using Sonnet with a 10-turn cap.
+- **Re-review:** comment `@claude review` on the PR. Only the repo owner can trigger it this way, since the repo is public.
+- Findings are advisory, not a required check, and the reviewer never edits code or the working tree — it only reads the diff and posts a comment.
+
 ## Models and usage
 
 Model choices are set in config, so every session, local or cloud, gets them without anyone remembering. The aim is to spend plan usage on Opus only where it pays off: planning, and reviews you switch to it for.
 
-| Where                                                              | Model                           | Why                                                                                                                                                         |
-| ------------------------------------------------------------------ | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Session default (`"model": "opusplan"` in `.claude/settings.json`) | Sonnet; Opus while in plan mode | Sonnet handles routine coding. `opusplan` is Claude Code's built-in plan/execute split.                                                                     |
-| `/card`'s first turn (`model: opus` in its `SKILL.md`)             | Opus                            | That turn reads the card and code and writes the plan. A skill's `model` covers only the turn that invokes it, so building and "ship it" go back to Sonnet. |
-| `Explore` subagent (`.claude/agents/explore.md`)                   | Haiku                           | Replaces the built-in Explore, which would otherwise run on the session model. Searching doesn't need a big model.                                          |
-| Claude in GitHub Actions (none yet)                                | Pinned per workflow             | `npm run check` fails if a step using `anthropics/claude-code-action` has no `--model` in `claude_args` (`.github/scripts/check-workflow-models.sh`).       |
+| Where                                                              | Model                           | Why                                                                                                                                                                                    |
+| ------------------------------------------------------------------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Session default (`"model": "opusplan"` in `.claude/settings.json`) | Sonnet; Opus while in plan mode | Sonnet handles routine coding. `opusplan` is Claude Code's built-in plan/execute split.                                                                                                |
+| `/card`'s first turn (`model: opus` in its `SKILL.md`)             | Opus                            | That turn reads the card and code and writes the plan. A skill's `model` covers only the turn that invokes it, so building and "ship it" go back to Sonnet.                            |
+| `Explore` subagent (`.claude/agents/explore.md`)                   | Haiku                           | Replaces the built-in Explore, which would otherwise run on the session model. Searching doesn't need a big model.                                                                     |
+| PR review (`.github/workflows/review.yml`)                         | Sonnet                          | Cheap enough to run on every PR; `npm run check` fails if a step using `anthropics/claude-code-action` has no `--model` in `claude_args` (`.github/scripts/check-workflow-models.sh`). |
 
 Claude Code has no native way to route individual edits to a lighter model, so they run on the session model. For a one-off switch, such as Opus for a tricky review, use `/model opus`, then `/model opusplan` to go back (`/model default` means the account default, which is Opus).
 

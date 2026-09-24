@@ -1,0 +1,43 @@
+name: Review
+
+# Advisory PR review against CLAUDE.md and the engineering principles. Runs
+# once per PR (not on `synchronize`, to protect Pro usage limits) or on
+# request via a "@claude review" comment from the repo owner.
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    # issue_comment also fires on plain issues; only the repo owner can
+    # request a re-review, since anyone can comment on a public repo.
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event.issue.pull_request != null &&
+       github.event.comment.author_association == 'OWNER' &&
+       contains(github.event.comment.body, '@claude review'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'issue_comment' && format('refs/pull/{0}/head', github.event.issue.number) || github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Review this pull request's diff (`gh pr diff`) against this
+            repo's CLAUDE.md and .claude/rules/engineering-principles.md.
+            Post one PR comment (`gh pr comment`) with your findings, or say
+            explicitly that you found none. Findings are advisory, not
+            blocking, so don't ask for changes or approve/request-changes.
+          claude_args: |
+            --model claude-sonnet-5
+            --max-turns 10
+            --allowedTools "Read,Grep,Glob,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*)"
