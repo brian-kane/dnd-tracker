@@ -45,6 +45,7 @@ How the VM gets set up:
 - The environment's **setup script** runs `scripts/setup.sh` once, as root, and the result is cached for about 7 days.
 - Cloud sessions use the VM's Node 22, since the VM has no supported way to change its default Node. The script accepts any Node in the `engines` range of `package.json`; CI and local machines use the version in `.node-version`.
 - A `SessionStart` hook in `.claude/settings.json` runs the same script at the start of every cloud session (it does nothing locally), so a lockfile or Playwright change since the cache was built is picked up.
+- `scripts/setup.sh` installs `gh` (Ubuntu's own package, no extra apt repo) if it's missing.
 - GitHub access goes through the cloud's GitHub proxy, using the Claude GitHub App: `gh` works with no token of your own, and the proxy allows `git push` to any branch, not just the session's working branch.
 - `attribution.sessionUrl` is off in `.claude/settings.json`, so commits and PR bodies keep the format in `CLAUDE.md`.
 
