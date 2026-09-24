@@ -31,6 +31,13 @@ if ! command -v jq >/dev/null; then
   as_root apt-get install -y jq
 fi
 
+# gh: /card opens and manages PRs with it. Ubuntu's own package (no extra apt
+# repo, so no new domain to allow).
+if ! command -v gh >/dev/null; then
+  as_root apt-get update
+  as_root apt-get install -y gh
+fi
+
 # Dependencies: npm writes node_modules/.package-lock.json on install, so it is
 # newer than package-lock.json unless the lockfile changed since.
 if [[ ! node_modules/.package-lock.json -nt package-lock.json ]]; then
@@ -47,4 +54,4 @@ if ! node -e "$launch" 2>/dev/null; then
   node -e "$launch"
 fi
 
-echo "setup: done (Node $(node --version), Playwright $(npx playwright --version))."
+echo "setup: done (Node $(node --version), Playwright $(npx playwright --version), gh $(gh --version | head -1))."
