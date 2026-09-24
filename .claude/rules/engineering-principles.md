@@ -15,7 +15,7 @@ Always in effect. Each item is something you can check in a diff.
 
 ## Orthogonality
 
-- Dependency direction: components → composables → rules/storage → model. `src/rules` imports only `src/model`; `src/model` imports nothing from the app.
+- Dependency direction: components → composables → rules/storage → model. `src/rules` imports only `src/model`; `src/model` imports nothing from the app. Enforced by lint (`eslint.config.ts`'s `layerBoundary`), not just review.
 - A change in one layer should not force edits in another. If it does, say so in the plan and why.
 
 ## Fail fast

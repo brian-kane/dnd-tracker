@@ -54,6 +54,7 @@ Engineering principles in `.claude/rules/engineering-principles.md` are always i
 - **Schema versioning:** every saved record has `schemaVersion`, with an upgrade function per bump.
 - **Storage:** async `load` / `save` / `list` adapter so a Firestore adapter can drop in later.
 - **No class-specific logic, ever.** If code needs to know "is this a druid", find the general shape.
+- **Layering is enforced by lint:** `eslint.config.ts` is the source of truth for the dependency direction below (`layerBoundary`). A violating import fails `npm run check`.
 - **UI:** container queries and relative units; nothing essential hover-only; controls at least `--control-min-size`.
 
 ## Parked (don't build yet)
