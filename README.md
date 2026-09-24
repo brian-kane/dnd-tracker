@@ -26,3 +26,23 @@ npm run test:unit  # run unit tests in watch mode
 npm run lint       # lint and auto-fix
 npm run format     # format src/ with Prettier
 ```
+
+## Hosting
+
+The app is hosted on Firebase Hosting (project `dnd-tracker-2c66f`, free Spark plan) at https://dnd-tracker-2c66f.web.app.
+
+- **PR previews:** after CI's `check` job passes, every PR from this repo is deployed to a preview channel, and the URL is posted as a comment on the PR. Previews expire after 7 days.
+- **Live:** merging to main deploys to the live site.
+
+Both deploys use the build that `check` produced and are defined in `.github/workflows/ci.yml`. The only credential is the `FIREBASE_SERVICE_ACCOUNT_DND_TRACKER_2C66F` GitHub secret.
+
+### One-time setup
+
+Already done for this repo. To redo it (e.g. to rotate the service account), run these on your own machine; both are interactive:
+
+```sh
+npx firebase login
+npx firebase init hosting:github
+```
+
+For `init`: repository `brian-kane/dnd-tracker`; answer No to the build-script and live-deploy questions, and No to overwriting files or installing agent skills. It creates the service account and uploads the secret. Delete the workflow file it generates, since `ci.yml` already handles deploys.
