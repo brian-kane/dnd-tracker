@@ -30,7 +30,13 @@
       "Bash(gh pr view *)",
       "Bash(gh api -X PATCH repos/{owner}/{repo}/pulls/*)",
       "Bash(gh pr checks *)",
-      "Bash(npm ls *)"
+      "Bash(npm ls *)",
+      "mcp__claude_ai_Trello__trelloReadBoard",
+      "mcp__claude_ai_Trello__trelloReadCard",
+      "mcp__claude_ai_Trello__trelloReadChecklist",
+      "mcp__claude_ai_Trello__trelloReadList",
+      "mcp__claude_ai_Trello__trelloReadMember",
+      "mcp__claude_ai_Trello__trelloSearch"
     ],
     "ask": [
       "Bash(gh pr merge *)",
@@ -41,7 +47,12 @@
       "Bash(npm remove *)",
       "Bash(npm rm *)",
       "Bash(npm un *)",
-      "Bash(npx *)"
+      "Bash(npx *)",
+      "mcp__claude_ai_Trello__trelloWriteBoard",
+      "mcp__claude_ai_Trello__trelloWriteChecklist",
+      "mcp__claude_ai_Trello__trelloWriteInbox",
+      "mcp__claude_ai_Trello__trelloWriteList",
+      "mcp__claude_ai_Trello__trelloWritePlanner"
     ],
     "deny": [
       "Read(**/.env)",
@@ -72,6 +83,16 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/guard-bash.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__claude_ai_Trello__trelloWriteCard",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/guard-trello.sh",
             "timeout": 10
           }
         ]
