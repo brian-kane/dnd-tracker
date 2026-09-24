@@ -5,6 +5,9 @@ argument-hint: '[card title]'
 # Pre-approves the move to Doing in the invoking turn. guard-trello.sh still makes every
 # other card write ask.
 allowed-tools: mcp__claude_ai_Trello__trelloWriteCard
+# Opus for the invoking turn only (read the card and code, plan). Later turns (build,
+# ship) return to the session model, Sonnet under opusplan.
+model: opus
 ---
 
 # /card — work one Trello card
