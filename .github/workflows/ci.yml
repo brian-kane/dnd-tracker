@@ -19,9 +19,23 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
-      # Typecheck already ran in check, so build-only is enough. The deploy jobs
-      # ship this exact build rather than rebuilding it.
-      - run: npm run build-only
+      # Browsers are tied to the Playwright version, so key the cache on the
+      # version actually installed rather than the semver range.
+      - id: playwright
+        run: echo "version=$(npm ls @playwright/test --json | jq -r '.dependencies["@playwright/test"].version')" >> "$GITHUB_OUTPUT"
+      - id: browsers-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.browsers-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      # The cache holds the browser but not its system libraries.
+      - if: steps.browsers-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      # Builds dist (typecheck already ran in check) and runs the acceptance
+      # tests against it. The deploy jobs ship this exact build.
+      - run: npm run test:e2e
       - uses: actions/upload-artifact@v7
         with:
           name: dist

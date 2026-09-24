@@ -11,7 +11,8 @@ Engineering principles in `.claude/rules/engineering-principles.md` are always i
 - **Plans:** at most 15 lines; list only decisions that need the user, each with a default ("I'll do X unless you say otherwise").
 - **Summaries:** at most 5 bullets. Show evidence (relevant command output), never just "it works". No long explanations unless asked. Say in one sentence what each new file is for.
 - Keep changes scoped to the task. If something is ambiguous, ask instead of guessing.
-- **Definition of done:** `npm run check` passes (typecheck, tests, lint); README and CLAUDE.md are still accurate if behavior or commands changed.
+- **Definition of done:** `npm run check` passes (typecheck, tests, lint); `npm run test:e2e` passes when UI or behavior changed; README and CLAUDE.md are still accurate if behavior or commands changed.
+- **Acceptance tests:** every observable "Done means" bullet (something a user can see or do in the browser) becomes a Playwright test in `e2e/`, in the same PR. Rules edges stay in Vitest.
 - **Workflow:** work is tracked in Trello. Lists: Parked, Up Next, Doing, Playtest, Done. Labels: Feature, Bug, Tooling. Card titles are "Subject: outcome". Use `/card` to work a card.
 - **Commit format:** subject line `type(subject): outcome` with a lowercase subject, at most 72 chars (aim for 50); Feature → `feat`, Bug → `fix`, Tooling → `chore`/`ci`/`build`. Then a blank line and a bullet body wrapped at 72 describing what changed. When there's a card, the last line is `Card: <trello link>`. No Co-Authored-By or AI attribution trailers. Example: `chore(agent): infrastructure setup`.
 - **Branches and PRs:** one branch per card (`<type>/<slug>`, e.g. `feat/lawrence-live-hp`). Branch commits use the subject format but are working history; the PR title and body are what land on main, as the squash commit's subject and body. So the PR body is in the commit body format, and is updated to describe the whole change whenever more commits are pushed. Main is protected: no direct pushes, and merging needs the CI `check` and `pr-title` checks to pass. "Ship it" squash-merges the PR and deletes the branch.
@@ -19,7 +20,7 @@ Engineering principles in `.claude/rules/engineering-principles.md` are always i
 ## Stack (decided — don't propose alternatives)
 
 - Vue 3 Composition API + TypeScript (strict) + Vite. Plain scoped CSS + tokens in `src/styles/tokens.css`; no CSS framework.
-- State via Vue reactivity in composables; no Pinia, no router. Vitest for the rules layer only.
+- State via Vue reactivity in composables; no Pinia, no router. Vitest for the rules layer only; Playwright (Chromium only) for acceptance tests against the built app.
 - Persistence behind a storage adapter interface (local browser storage for now).
 - WSL2 natively, no Docker. Node version pinned in `.node-version`.
 
@@ -32,6 +33,7 @@ Engineering principles in `.claude/rules/engineering-principles.md` are always i
 | `npm run check`     | Typecheck + tests + lint + hook tests (no auto-fix). Same as CI and hooks. |
 | `npm run typecheck` | `vue-tsc --build`.                                                         |
 | `npm test`          | Vitest single pass (`npm run test:unit` for watch mode).                   |
+| `npm run test:e2e`  | Build, then run Playwright acceptance tests headless (also runs in CI).    |
 | `npm run lint`      | oxlint then ESLint, auto-fixing what they can.                             |
 | `npm run format`    | Prettier on `src/`.                                                        |
 
@@ -41,6 +43,7 @@ Engineering principles in `.claude/rules/engineering-principles.md` are always i
 - `src/model/` — data-model types and schema upgrade functions.
 - `src/storage/` — storage adapter interface and implementations.
 - `src/components/` — Vue components. `src/styles/` — global design tokens.
+- `e2e/` — Playwright acceptance tests, one or more per observable "Done means" bullet.
 - `.claude/` — agent settings, hooks, rules, and the `/card` skill.
 
 ## Architecture rules
