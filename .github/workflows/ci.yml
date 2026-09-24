@@ -34,8 +34,12 @@ jobs:
       - if: steps.browsers-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
       # Builds dist (typecheck already ran in check) and runs the acceptance
-      # tests against it. The deploy jobs ship this exact build.
+      # tests against it. The deploy jobs ship this exact build. On a pull
+      # request github.sha is GitHub's temporary merge commit, so the build
+      # info names the branch's head commit instead.
       - run: npm run test:e2e
+        env:
+          BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/upload-artifact@v7
         with:
           name: dist
