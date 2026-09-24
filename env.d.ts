@@ -4,3 +4,4 @@
 declare const __BUILD_SHA__: string
 declare const __BUILD_TIME__: string
 declare const __REPO_URL__: string
+declare const __CHANGELOG__: readonly import('./scripts/changelog.ts').ChangelogEntry[]
