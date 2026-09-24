@@ -96,8 +96,24 @@ The app is hosted on Firebase Hosting (project `dnd-tracker-2c66f`, free Spark p
 - **Live:** merging to main deploys to the live site.
 - **Build info:** the footer shows the commit hash (linked to GitHub) and build time. Builds read the hash from `BUILD_SHA`, falling back to `git rev-parse HEAD`; CI sets it to the PR's head commit, because a PR checkout is GitHub's temporary merge commit.
 - **Security headers:** `firebase.json` sends a CSP, `X-Content-Type-Options`, and `Referrer-Policy`; Firebase Hosting adds HSTS on its own. The `preview` job checks all four are present, and that the app still renders under the CSP, with `e2e/security-headers.spec.ts`.
+- **Cache headers:** `firebase.json` caches hashed files under `dist/assets/` (Vite's build output) as `immutable` for a year; everything else, including `index.html`, is `no-cache` so a deploy is always picked up on the next visit. `e2e/security-headers.spec.ts` checks both.
 
 Both deploys use the build that `check` produced and are defined in `.github/workflows/ci.yml`. Their only credential is the `FIREBASE_SERVICE_ACCOUNT_DND_TRACKER_2C66F` GitHub secret. See [SECURITY.md](SECURITY.md) for the full threat model and credentials inventory.
+
+## Performance
+
+"It's fast" is measured and enforced, not a hope — every PR proves it didn't make things slower.
+
+- **Lighthouse:** the `preview` job runs Lighthouse CI (`treosh/lighthouse-ci-action`) against the real deployed preview, 3 times, taking the median. Budgets are in `lighthouserc.json`:
+  - **Performance score** ≥ 0.98 — Lighthouse's overall rollup of the metrics below. Currently a perfect 1.0.
+  - **LCP** (Largest Contentful Paint) ≤ 600ms — how long the main content takes to appear; the metric users feel as "is it loaded yet". Currently 266–397ms.
+  - **CLS** (Cumulative Layout Shift) ≤ 0.02 — how much visible content jumps around while loading; above this, users misclick. Currently 0.
+  - **TBT** (Total Blocking Time) ≤ 50ms — how long the main thread is too busy to respond to input during load; a lab stand-in for INP, since a scripted run has no real user input to measure INP from. Currently 0–6ms.
+  - A budget failure fails the PR. Fork PRs don't get this check — see `SECURITY.md`.
+- **Bundle size:** `scripts/bundle-size.mjs` sums the gzipped size of `dist/assets/*.js` and `*.css` and fails `check` if either exceeds the budget in the script. It also compares against the size from main's own last run (a workflow artifact) and reports the change in the job's step summary; with no baseline yet, it reports the absolute size only.
+- **CI job duration:** the `check` job times itself and warns (doesn't fail) in its step summary if it goes over the target in `.github/workflows/ci.yml`.
+
+Budgets started a little under measured values, so a regression shows up immediately rather than needing to be discovered later.
 
 ## Working a card
 

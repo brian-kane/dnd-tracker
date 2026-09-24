@@ -13,7 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read # to fetch main's last bundle-size artifact as a baseline
     steps:
+      # So the last step can report this job's wall time against a target.
+      - id: start
+        run: echo "epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -41,11 +45,39 @@ jobs:
       - run: npm run test:e2e
         env:
           BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      # Compares this build's gzipped size against main's own last measurement
+      # (uploaded below); a fork PR or this budget's own first run has none,
+      # and the script degrades to reporting absolute sizes only.
+      - name: Fetch bundle size baseline
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --branch main --status success --json databaseId --limit 1 --jq '.[0].databaseId // empty')
+          [ -n "$run_id" ] && gh run download "$run_id" --repo "$GITHUB_REPOSITORY" -n bundle-size -D baseline || true
+      - run: node scripts/bundle-size.mjs baseline/bundle-size.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: github.ref == 'refs/heads/main'
+        with:
+          name: bundle-size
+          path: bundle-size.json
+          retention-days: 90
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: dist
           path: dist
           retention-days: 1
+      # Advisory only: warns instead of failing so a slow network day doesn't
+      # block a merge.
+      - name: Report job duration
+        if: always()
+        run: |
+          target=50
+          elapsed=$(( $(date +%s) - ${{ steps.start.outputs.epoch }} ))
+          echo "check job took ${elapsed}s (target: ${target}s)" >> "$GITHUB_STEP_SUMMARY"
+          if (( elapsed > target )); then
+            echo "::warning::check job took ${elapsed}s, over the ${target}s target"
+          fi
 
   # Secrets aren't available to PRs from forks, so only same-repo PRs get a preview.
   preview:
@@ -86,6 +118,14 @@ jobs:
       - run: npx playwright test e2e/security-headers.spec.ts
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.details_url }}
+      # Budgets in lighthouserc.json; 3 runs, median taken, against the real
+      # deployed build on Firebase's CDN, not a dev server.
+      - uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # 12.6.2
+        with:
+          urls: ${{ steps.deploy.outputs.details_url }}
+          configPath: ./lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: false
       # The PR body goes through env, never into the script text, so its
       # contents can't run as shell.
       - env:
