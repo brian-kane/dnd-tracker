@@ -1,5 +1,7 @@
 # D&D Tracker
 
+[![CI](https://github.com/brian-kane/dnd-tracker/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/brian-kane/dnd-tracker/actions/workflows/ci.yml?query=branch%3Amain)
+
 A personal D&D 5e (2014 rules) play companion for tracking a character's live state during sessions: HP, temp HP, spell slots, concentration, conditions, companions, transformation forms, item uses, and rests.
 
 Built with Vue 3, TypeScript, and Vite.
