@@ -2,7 +2,11 @@ name: Review
 
 # Advisory PR review against CLAUDE.md and the engineering principles. Runs
 # once per PR (not on `synchronize`, to protect Pro usage limits) or on
-# request via a "@claude review" comment from the repo owner.
+# request via a "@claude review" comment from the repo owner. Always checks
+# out main, never the PR's own branch: the PR's diff is fetched over the API
+# (`gh pr diff`), so a PR can neither edit its own rules to pass review nor
+# have its (possibly attacker-controlled) code checked out in a workflow that
+# holds secrets.
 on:
   pull_request:
     types: [opened, ready_for_review, reopened]
@@ -26,30 +30,23 @@ jobs:
       pull-requests: write
       id-token: write # required to fetch the GitHub App's OIDC token
     steps:
-      # Resolves the PR's current head SHA right before checkout, rather than
-      # checking out the mutable refs/pull/<n>/head ref: that ref can move
-      # between when the "@claude review" comment was posted and when this
-      # job actually starts, which would check out code the owner never saw.
-      - if: github.event_name == 'issue_comment'
-        id: pr
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          sha=$(gh pr view "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --json headRefOid --jq .headRefOid)
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      - id: pr
+        run: echo "number=${{ github.event.pull_request.number || github.event.issue.number }}" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event_name == 'issue_comment' && steps.pr.outputs.sha || github.event.pull_request.head.sha }}
+          ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 1
       - uses: anthropics/claude-code-action@8cf3482550831fb35a4fc3fbf7ca139cf8028b4c # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Review this pull request's diff (`gh pr diff`) against this
+            Review pull request #${{ steps.pr.outputs.number }}'s diff
+            (`gh pr diff ${{ steps.pr.outputs.number }}`) against this
             repo's CLAUDE.md and .claude/rules/engineering-principles.md.
-            Post one PR comment (`gh pr comment`) with your findings, or say
-            explicitly that you found none. Findings are advisory, not
-            blocking, so don't ask for changes or approve/request-changes.
+            Post one PR comment (`gh pr comment ${{ steps.pr.outputs.number }}`)
+            with your findings, or say explicitly that you found none.
+            Findings are advisory, not blocking, so don't ask for changes
+            or approve/request-changes.
           claude_args: |
             --model claude-sonnet-5
             --max-turns 10
