@@ -28,7 +28,7 @@ If the title, label, or a required section is missing, ask for it.
 
 1. Read the relevant code. For bugs, find the root cause before planning a fix.
 2. If the card is ambiguous or conflicts with CLAUDE.md, ask before planning.
-3. Give a plan of at most 15 lines: the slices you'll build, and only the decisions that need the user, each with a default ("I'll do X unless you say otherwise").
+3. Give a plan of at most 15 lines: the slices you'll build, which "Done means" bullets become Playwright tests, and only the decisions that need the user, each with a default ("I'll do X unless you say otherwise").
 4. **Stop and wait for approval.**
 
 ## 3. Build
@@ -38,11 +38,14 @@ If the title, label, or a required section is missing, ask for it.
   - Example: "Lawrence: live HP that survives reload" (Feature) → `feat/lawrence-live-hp`.
 - Implement in small steps, following the autonomy tiers. Anything in the "ask first" tier needs a yes, even mid-task.
 - Never implement anything listed under **Out of scope**. If it seems necessary, stop and ask.
+- Each observable **Done means** bullet (something a user can see or do in the browser) gets a Playwright test in `e2e/`, in this PR. Rules edges stay in Vitest.
 - Stop at **Done means**. No extras.
 
 ## 4. Verify
 
-The Stop hook runs `npm run check` when source changed. Fix any failure it reports; don't stop until it passes or you've explained why it can't. For UI work, say what to try in the browser.
+The Stop hook runs `npm run check` when source changed. Fix any failure it reports; don't stop until it passes or you've explained why it can't.
+
+If the card touches UI or behavior, run `npm run test:e2e` before opening the PR and fix any failure. For UI work, also say what to try in the browser.
 
 ## 5. Open the PR
 

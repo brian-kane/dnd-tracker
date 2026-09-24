@@ -23,8 +23,15 @@ npm run check      # typecheck + tests + lint + hook tests (what CI runs)
 npm run typecheck  # type-check only
 npm test           # run unit tests once
 npm run test:unit  # run unit tests in watch mode
+npm run test:e2e   # build, then run Playwright acceptance tests (Chromium, headless)
 npm run lint       # lint and auto-fix
 npm run format     # format src/ with Prettier
+```
+
+Before the first `npm run test:e2e`, install Chromium and its system libraries once (uses sudo):
+
+```sh
+npx playwright install --with-deps chromium
 ```
 
 ## Hosting
