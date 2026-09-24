@@ -1,13 +1,10 @@
 <script setup lang="ts">
 const email = import.meta.env.VITE_WISH_EMAIL
-if (!email) {
-  throw new Error('VITE_WISH_EMAIL is not set')
-}
-const href = `mailto:${email}?subject=${encodeURIComponent('Wish: ')}`
+const href = email ? `mailto:${email}?subject=${encodeURIComponent('Wish: ')}` : undefined
 </script>
 
 <template>
-  <a class="wish-link" :href="href">Send a wish</a>
+  <a v-if="href" class="wish-link" :href="href">Send a wish</a>
 </template>
 
 <style scoped>
