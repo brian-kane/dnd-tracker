@@ -30,7 +30,7 @@ Engineering principles in `.claude/rules/engineering-principles.md` are always i
 | ------------------- | -------------------------------------------------------------------------- |
 | `npm run dev`       | Vite dev server with hot reload.                                           |
 | `npm run build`     | Type-check and build for production into `dist/`.                          |
-| `npm run check`     | Typecheck + tests + lint + hook tests (no auto-fix). Same as CI and hooks. |
+| `npm run check`     | Typecheck + tests + lint + hook and workflow checks. Same as CI and hooks. |
 | `npm run typecheck` | `vue-tsc --build`.                                                         |
 | `npm test`          | Vitest single pass (`npm run test:unit` for watch mode).                   |
 | `npm run test:e2e`  | Build, then run Playwright acceptance tests headless (also runs in CI).    |
@@ -45,7 +45,7 @@ Engineering principles in `.claude/rules/engineering-principles.md` are always i
 - `src/components/` — Vue components. `src/styles/` — global design tokens.
 - `e2e/` — Playwright acceptance tests, one or more per observable "Done means" bullet.
 - `scripts/setup.sh` — the one environment definition (Node check, `jq`, `npm ci`, Chromium), run by new machines, CI, and cloud sessions.
-- `.claude/` — agent settings, hooks, rules, and the `/card` skill.
+- `.claude/` — agent settings (including model choices), hooks, rules, the Haiku `Explore` subagent, and the `/card` skill.
 
 ## Architecture rules
 

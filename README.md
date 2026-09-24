@@ -61,7 +61,7 @@ To work a card: at claude.ai/code (or the **Code** tab of the Claude app), pick 
 
 ```sh
 npm run build      # type-check and build for production
-npm run check      # typecheck + tests + lint + hook tests (what CI runs)
+npm run check      # typecheck + tests + lint + hook and workflow checks (what CI runs)
 npm run typecheck  # type-check only
 npm test           # run unit tests once
 npm run test:unit  # run unit tests in watch mode
@@ -85,6 +85,25 @@ Both deploys use the build that `check` produced and are defined in `.github/wor
 `/card` works the top card in **Up Next**; `/card <title>` works a named card. It reads the card through the claude.ai Trello connector (the official Atlassian one, connected once at https://claude.ai/settings/connectors; local sessions signed in with that account get it too). It refuses a card with an empty template section, or when **Doing** already holds another card, and says why. Starting a card moves it to **Doing**; "ship it" merges the PR and moves the card to **Playtest**. Moving to **Done** stays manual.
 
 Permissions in `.claude/settings.json`: Trello reads are allowed; board, list, checklist, inbox, and planner writes always ask. `/card` pre-approves card writes for its first turn (its `allowed-tools`), and the `guard-trello.sh` hook makes every card write other than a move ask anyway, so creating, editing, or archiving cards always prompts.
+
+## Models and usage
+
+Model choices are set in config, so every session, local or cloud, gets them without anyone remembering. The aim is to spend plan usage on Opus only where it pays off: planning, and reviews you switch to it for.
+
+| Where                                                              | Model                           | Why                                                                                                                                                         |
+| ------------------------------------------------------------------ | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Session default (`"model": "opusplan"` in `.claude/settings.json`) | Sonnet; Opus while in plan mode | Sonnet handles routine coding. `opusplan` is Claude Code's built-in plan/execute split.                                                                     |
+| `/card`'s first turn (`model: opus` in its `SKILL.md`)             | Opus                            | That turn reads the card and code and writes the plan. A skill's `model` covers only the turn that invokes it, so building and "ship it" go back to Sonnet. |
+| `Explore` subagent (`.claude/agents/explore.md`)                   | Haiku                           | Replaces the built-in Explore, which would otherwise run on the session model. Searching doesn't need a big model.                                          |
+| Claude in GitHub Actions (none yet)                                | Pinned per workflow             | `npm run check` fails if a step using `anthropics/claude-code-action` has no `--model` in `claude_args` (`.github/scripts/check-workflow-models.sh`).       |
+
+Claude Code has no native way to route individual edits to a lighter model, so they run on the session model. For a one-off switch, such as Opus for a tricky review, use `/model opus`, then `/model opusplan` to go back (`/model default` means the account default, which is Opus).
+
+To check usage:
+
+- `/usage`: plan usage bars, plus a breakdown of what used them (skills, subagents, MCP servers) over the last 24 hours (`d`) or 7 days (`w`). The breakdown only covers this machine.
+- `/status`: the current model and account.
+- To compare two cards, sum the tokens per model in their transcripts (`~/.claude/projects/<project>/<session>.jsonl`, `message.usage` on each assistant message).
 
 ## Trello card comments
 
