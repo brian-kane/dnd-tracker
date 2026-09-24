@@ -3,8 +3,9 @@ name: card
 description: Work a Trello card end to end — fetch it from the board, plan, build on a branch, open a PR, and merge on "ship it". Use only when the user's message starts with /card, including when /card arrives inside pasted text.
 argument-hint: '[card title]'
 # Pre-approves the move to Doing in the invoking turn. guard-trello.sh still makes every
-# other card write ask.
-allowed-tools: mcp__claude_ai_Trello__trelloWriteCard
+# other card write ask. The connector's tools are named mcp__claude_ai_Trello__* locally
+# and mcp__Trello__* in cloud sessions, so both are listed.
+allowed-tools: mcp__claude_ai_Trello__trelloWriteCard, mcp__Trello__trelloWriteCard
 # Opus for the invoking turn only (read the card and code, plan). Later turns (build,
 # ship) return to the session model, Sonnet under opusplan.
 model: opus
@@ -20,7 +21,7 @@ Follow CLAUDE.md (autonomy tiers, output rules, definition of done) and `.claude
 
 ## 1. Get the card
 
-Cards come from the board "DnD Tracker" (https://trello.com/b/3cscGaJR/dnd-tracker, ARI `ari:cloud:trello::board/workspace/65f8a2b470b23cf8bd646950/6ab3e35b7e9b2eaeb388baf0`) through the Trello connector (`mcp__claude_ai_Trello__*` tools). If those tools aren't available, stop and say so; in a cloud session, the Trello connector must be enabled for the session. Don't fall back to pasted card text.
+Cards come from the board "DnD Tracker" (https://trello.com/b/3cscGaJR/dnd-tracker, ARI `ari:cloud:trello::board/workspace/65f8a2b470b23cf8bd646950/6ab3e35b7e9b2eaeb388baf0`) through the Trello connector (`mcp__claude_ai_Trello__*` tools locally, `mcp__Trello__*` in a cloud session). If those tools aren't available, stop and say so; in a cloud session, the Trello connector must be enabled for the session. Don't fall back to pasted card text.
 
 1. List the board's lists (`trelloReadList` list_by_board) and match by name prefix: **Up Next**, **Doing** (its name carries a suffix, "(max 1)"), **Playtest**, **Done**. Read Up Next and Doing (`trelloReadList` get); each gives its cards' ids and names in board order.
 2. Find the card:

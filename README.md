@@ -46,7 +46,8 @@ How the VM gets set up:
 - Cloud sessions use the VM's Node 22, since the VM has no supported way to change its default Node. The script accepts any Node in the `engines` range of `package.json`; CI and local machines use the version in `.node-version`.
 - A `SessionStart` hook in `.claude/settings.json` runs the same script at the start of every cloud session (it does nothing locally), so a lockfile or Playwright change since the cache was built is picked up.
 - `scripts/setup.sh` installs `gh` (Ubuntu's own package, no extra apt repo) if it's missing.
-- GitHub access goes through the cloud's GitHub proxy, using the Claude GitHub App: `gh` works with no token of your own, and the proxy allows `git push` to any branch, not just the session's working branch.
+- GitHub access goes through the cloud's GitHub proxy, using the Claude GitHub App, with no token of your own. The proxy allows `git push` to any branch, not just the session's working branch, and REST calls (`gh api`), but blocks GraphQL, which `gh pr create`, `gh pr view`, `gh pr checks` and `gh pr merge` use. So `/card`'s PR steps don't work in a cloud session yet.
+- The Trello connector's tools are named `mcp__Trello__*` in a cloud session and `mcp__claude_ai_Trello__*` locally. `.claude/settings.json` and `/card` list both, and `guard-trello.test.sh` fails `npm run check` if a Trello rule is missing its twin.
 - `attribution.sessionUrl` is off in `.claude/settings.json`, so commits and PR bodies keep the format in `CLAUDE.md`.
 
 One-time setup, in a browser:
@@ -121,7 +122,7 @@ Budgets started a little under measured values, so a regression shows up immedia
 
 `/card` works the top card in **Up Next**; `/card <title>` works a named card. It reads the card through the claude.ai Trello connector (the official Atlassian one, connected once at https://claude.ai/settings/connectors; local sessions signed in with that account get it too). It refuses a card with an empty template section, or when **Doing** already holds another card, and says why. Starting a card moves it to **Doing**; "ship it" merges the PR and moves the card to **Playtest**. Moving to **Done** stays manual.
 
-Permissions in `.claude/settings.json`: Trello reads are allowed; board, list, checklist, inbox, and planner writes always ask. `/card` pre-approves card writes for its first turn (its `allowed-tools`), and the `guard-trello.sh` hook makes every card write other than a move ask anyway, so creating, editing, or archiving cards always prompts.
+Permissions in `.claude/settings.json` (under both connector tool names; see the cloud section): Trello reads are allowed; board, list, checklist, inbox, and planner writes always ask. `/card` pre-approves card writes for its first turn (its `allowed-tools`), and the `guard-trello.sh` hook makes every card write other than a move ask anyway, so creating, editing, or archiving cards always prompts.
 
 ## PR review
 
