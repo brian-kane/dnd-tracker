@@ -20,7 +20,7 @@ On a new machine (Linux or WSL2, Ubuntu-based):
 
 ## Cloud sessions (Claude Code on the web)
 
-Work a card from a phone or browser with no local machine involved: a cloud session clones the repo onto an Anthropic-managed VM, runs `/card`, and pushes the branch; CI then builds the preview and comments on the Trello card. The session needs no Trello or Firebase secrets, since CI holds those.
+Work a card from a phone or browser with no local machine involved: a cloud session clones the repo onto an Anthropic-managed VM, runs `/card`, and pushes the branch; CI then builds the preview and comments on the Trello card. The session reads and moves cards through the Trello connector and holds no Trello or Firebase secrets; CI holds those.
 
 How the VM gets set up:
 
@@ -55,7 +55,7 @@ One-time setup, in a browser:
      (The setup script runs from `/home/user`, with the repo cloned to `/home/user/dnd-tracker`.)
    - Click **Create environment**.
 
-To work a card: at claude.ai/code (or the **Code** tab of the Claude app), pick the `brian-kane/dnd-tracker` repo, the `main` branch, and the `dnd-tracker` environment, then paste the `/card ...` text as the first message.
+To work a card: at claude.ai/code (or the **Code** tab of the Claude app), pick the `brian-kane/dnd-tracker` repo, the `main` branch, and the `dnd-tracker` environment, make sure the Trello connector is on for the session, then send `/card` (or `/card <title>`) as the first message.
 
 ## Other commands
 
@@ -79,6 +79,12 @@ The app is hosted on Firebase Hosting (project `dnd-tracker-2c66f`, free Spark p
 - **Build info:** the footer shows the commit hash (linked to GitHub) and build time. Builds read the hash from `BUILD_SHA`, falling back to `git rev-parse HEAD`; CI sets it to the PR's head commit, because a PR checkout is GitHub's temporary merge commit.
 
 Both deploys use the build that `check` produced and are defined in `.github/workflows/ci.yml`. Their only credential is the `FIREBASE_SERVICE_ACCOUNT_DND_TRACKER_2C66F` GitHub secret.
+
+## Working a card
+
+`/card` works the top card in **Up Next**; `/card <title>` works a named card. It reads the card through the claude.ai Trello connector (the official Atlassian one, connected once at https://claude.ai/settings/connectors; local sessions signed in with that account get it too). It refuses a card with an empty template section, or when **Doing** already holds another card, and says why. Starting a card moves it to **Doing**; "ship it" merges the PR and moves the card to **Playtest**. Moving to **Done** stays manual.
+
+Permissions in `.claude/settings.json`: Trello reads are allowed; board, list, checklist, inbox, and planner writes always ask. `/card` pre-approves card writes for its first turn (its `allowed-tools`), and the `guard-trello.sh` hook makes every card write other than a move ask anyway, so creating, editing, or archiving cards always prompts.
 
 ## Trello card comments
 

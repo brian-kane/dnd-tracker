@@ -1,12 +1,15 @@
 ---
 name: card
-description: Work a Trello card end to end — read, plan, build on a branch, open a PR, and merge on "ship it". Use only when the user's message starts with /card, including when /card arrives inside pasted text.
-argument-hint: <pasted Trello card>
+description: Work a Trello card end to end — fetch it from the board, plan, build on a branch, open a PR, and merge on "ship it". Use only when the user's message starts with /card, including when /card arrives inside pasted text.
+argument-hint: '[card title]'
+# Pre-approves the move to Doing in the invoking turn. guard-trello.sh still makes every
+# other card write ask.
+allowed-tools: mcp__claude_ai_Trello__trelloWriteCard
 ---
 
 # /card — work one Trello card
 
-Card input:
+Card title (may be empty, or the literal placeholder, meaning none was given):
 
 $ARGUMENTS
 
@@ -14,15 +17,21 @@ Follow CLAUDE.md (autonomy tiers, output rules, definition of done) and `.claude
 
 ## 1. Get the card
 
-Source today: the pasted text above. If it's empty, the editor may have split a long paste off from the command — use the card pasted in the same user message. (Later: fetch from Trello and move the card to **Doing**. Only this step changes.)
+Cards come from the board "DnD Tracker" (https://trello.com/b/3cscGaJR/dnd-tracker, ARI `ari:cloud:trello::board/workspace/65f8a2b470b23cf8bd646950/6ab3e35b7e9b2eaeb388baf0`) through the Trello connector (`mcp__claude_ai_Trello__*` tools). If those tools aren't available, stop and say so; in a cloud session, the Trello connector must be enabled for the session. Don't fall back to pasted card text.
 
-Extract into a working card:
-
-- **Title** ("Subject: outcome") and **label** (Feature, Bug, or Tooling).
-- Feature/Tooling sections: **Goal**, **Done means**, **Out of scope**, **Notes**.
-- Bug sections: **Observed**, **Expected**, **Steps to reproduce**, **Notes**. For bugs, "Done means" is: Expected happens, and a rules test reproduces the bug if the cause is in `src/rules`.
-
-If the title, label, or a required section is missing, ask for it.
+1. List the board's lists (`trelloReadList` list_by_board) and match by name prefix: **Up Next**, **Doing** (its name carries a suffix, "(max 1)"), **Playtest**, **Done**. Read Up Next and Doing (`trelloReadList` get); each gives its cards' ids and names in board order.
+2. Find the card:
+   - No title given: the first card in Up Next. If Up Next is empty, stop and say so.
+   - Title given: search the board (`trelloSearch` search_cards, scoped by `boardIds`). Search also matches descriptions, so pick by name: the result whose name equals the title, ignoring case; otherwise the only one whose name contains it. If none or several match, stop and list the names found. A card in Playtest or Done has already shipped: stop and say so.
+3. Read it in full (`trelloReadCard` get, which also gives its `id` for moving) and extract a working card:
+   - **Title** ("Subject: outcome"), **label** (exactly one of Feature, Bug, Tooling), and the card link (`https://trello.com/c/<shortLink>`).
+   - Feature/Tooling sections: **Goal**, **Done means**, **Out of scope**, **Notes**.
+   - Bug sections: **Observed**, **Expected**, **Steps to reproduce**, **Notes**. For bugs, "Done means" is: Expected happens, and a rules test reproduces the bug if the cause is in `src/rules`.
+4. Refuse to start, saying exactly why, and change nothing on the board when:
+   - The title isn't "Subject: outcome", or the label isn't exactly one of the three.
+   - Any section of the label's template is missing or has no text under its heading ("None" counts as text).
+   - Doing holds a card other than this one. Name that card, and say `/card <its title>` resumes it.
+5. If the card is already in Doing, it's being resumed: don't move it. Otherwise move it to the top of Doing (`trelloWriteCard` move) and say so in one line.
 
 ## 2. Understand, then plan
 
@@ -65,20 +74,18 @@ The PR title and body become the squash commit on main, so they follow the commi
    Card: <card link>
    ```
 
-   If the card has no link, ask for it.
-
 4. Follow-up commits go on the same branch (`git push`). After each push, rewrite the body so it describes the whole change, not just the first commit: `gh api -X PATCH repos/{owner}/{repo}/pulls/<number> -F body=@<file>`. (`gh pr edit` fails on gh 2.46 with a Projects (classic) deprecation error.)
 
 ## 6. Summarize
 
-At most 5 bullets: the PR URL, what changed, what to look at or try in the browser (`npm run dev`), and anything uncertain. Show evidence (relevant command output), not "it works". (Later: post this summary as a Trello comment and move the card to **Playtest**.)
+At most 5 bullets: the PR URL, what changed, what to look at or try in the browser (`npm run dev`), and anything uncertain. Show evidence (relevant command output), not "it works".
 
 ## 7. Ship (only when the user says "ship it")
 
 1. `gh pr checks --watch`. If a check fails, stop and report it; GitHub won't allow the merge anyway. "No checks reported" right after a push means CI hasn't registered yet — wait and rerun, don't merge.
 2. Save the PR body to a scratchpad file (`gh pr view --json body --jq .body`), then `gh pr merge --squash --delete-branch --subject "<PR title>" --body-file <file>`. "Ship it" is approval for this merge; the permission prompt is the one confirmation. `--subject` stops GitHub appending ` (#N)` to the title; passing the body explicitly makes the squash commit match the PR even if the API default differs.
 3. `git switch main && git pull --ff-only`, and confirm the squash commit is on main.
-4. Remind the user to move the card to **Playtest** in Trello (it moves to **Done** only after real use). (Later: move it automatically.)
+4. Move the card to the top of **Playtest** (`trelloWriteCard` move; this asks, since the skill's pre-approval ended with its first turn), and say so. Never move it to **Done**; that's the user's call after real use.
 
 ## Gotchas
 

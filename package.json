@@ -14,7 +14,7 @@
     "typecheck": "vue-tsc --build",
     "check": "run-s typecheck test check:lint check:hooks",
     "check:lint": "oxlint . && eslint . --cache",
-    "check:hooks": "bash .claude/hooks/guard-bash.test.sh",
+    "check:hooks": "bash .claude/hooks/guard-bash.test.sh && bash .claude/hooks/guard-trello.test.sh",
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
