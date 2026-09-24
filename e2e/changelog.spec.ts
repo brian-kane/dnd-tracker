@@ -13,7 +13,7 @@ test('the changelog lists the latest commit first', async ({ page }) => {
   if (!latest) throw new Error('git log has no changelog entries')
 
   await page.goto('/')
-  await page.getByText('Changelog').click()
+  await page.locator('.changelog summary').click()
 
   const first = page.locator('.changelog li').first()
   await expect(first).toContainText(latest.type)
@@ -24,11 +24,11 @@ test('the changelog lists the latest commit first', async ({ page }) => {
 
 test('each changelog entry links to its commit on GitHub', async ({ page }) => {
   await page.goto('/')
-  await page.getByText('Changelog').click()
+  await page.locator('.changelog summary').click()
 
-  const hrefs = await page.locator('.changelog li a').evaluateAll((links) =>
-    links.map((link) => link.getAttribute('href')),
-  )
+  const hrefs = await page
+    .locator('.changelog li a')
+    .evaluateAll((links) => links.map((link) => link.getAttribute('href')))
   expect(hrefs).toEqual(
     gitEntries.map((entry) => `https://github.com/brian-kane/dnd-tracker/commit/${entry.sha}`),
   )
