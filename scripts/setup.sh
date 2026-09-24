@@ -9,36 +9,21 @@ as_root() {
   if ((EUID == 0)); then "$@"; else sudo "$@"; fi
 }
 
-# Node: the version pinned in .node-version. Only root installs it (the cloud
-# setup script runs as root); elsewhere use your own version manager.
-node_version=$(<.node-version)
-if [[ "$(node --version 2>/dev/null)" != "v$node_version" ]]; then
-  if ((EUID != 0)); then
-    echo "setup: need Node $node_version (see .node-version), found $(node --version 2>/dev/null || echo none)." >&2
-    exit 1
-  fi
-  dir=/opt/node-v$node_version
-  if [[ ! -x $dir/bin/node ]]; then
-    tarball=node-v$node_version-linux-x64.tar.xz
-    tmp=$(mktemp -d)
-    curl -fsSL -o "$tmp/$tarball" "https://nodejs.org/dist/v$node_version/$tarball"
-    curl -fsSL -o "$tmp/SHASUMS256.txt" "https://nodejs.org/dist/v$node_version/SHASUMS256.txt"
-    (cd "$tmp" && grep " $tarball\$" SHASUMS256.txt | sha256sum -c --quiet -)
-    mkdir -p "$dir"
-    tar -xJf "$tmp/$tarball" -C "$dir" --strip-components=1
-    rm -r "$tmp"
-  fi
-  ln -sf "$dir"/bin/{node,npm,npx} /usr/local/bin/
-  hash -r
-  # A SessionStart hook can also put it first on PATH for Claude's shell.
-  if [[ -n "${CLAUDE_ENV_FILE:-}" ]]; then
-    echo "export PATH=$dir/bin:\$PATH" >>"$CLAUDE_ENV_FILE"
-  fi
-  if [[ "$(node --version)" != "v$node_version" ]]; then
-    echo "setup: installed Node $node_version in $dir, but PATH still finds $(command -v node) ($(node --version))." >&2
-    exit 1
-  fi
+# Node: CI and local use the version pinned in .node-version. Claude Code cloud
+# VMs have no supported way to change their default Node (22), so accept any
+# version in package.json's engines range, checked with npm's own semver.
+if ! command -v node >/dev/null; then
+  echo "setup: Node not found; install the version in .node-version." >&2
+  exit 1
 fi
+node -e '
+  const semver = require(process.argv[1])
+  const range = require("./package.json").engines.node
+  if (!semver.satisfies(process.version, range)) {
+    console.error(`setup: Node ${process.version} is outside engines "${range}"; install the version in .node-version.`)
+    process.exit(1)
+  }
+' "$(npm root -g)/npm/node_modules/semver"
 
 # jq: the Claude Code hooks and CI read JSON with it.
 if ! command -v jq >/dev/null; then
