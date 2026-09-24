@@ -10,13 +10,31 @@ Built with Vue 3, TypeScript, and Vite.
 
 On a new machine (Linux or WSL2, Ubuntu-based):
 
-1. Install the Node version in `.node-version` with your version manager, plus `git` and the GitHub CLI; run `gh auth login`.
-2. `gh repo clone brian-kane/dnd-tracker && cd dnd-tracker`
+1. Prerequisites, each installed per its own docs:
+   - [git](https://git-scm.com/downloads)
+   - [GitHub CLI](https://cli.github.com/) — then `gh auth login`
+   - a Node version manager (e.g. [fnm](https://github.com/Schniz/fnm)) — install the version pinned in `.node-version`
+   - [Claude Code](https://docs.claude.com/en/docs/claude-code/setup) — `npm install -g @anthropic-ai/claude-code`, then run `claude` and sign in (`/login` if it doesn't prompt)
+2. `gh repo clone brian-kane/dnd-tracker ~/code/dnd-tracker && cd ~/code/dnd-tracker` — this repo's convention is `~/code/<name>`, not `~/<name>`.
 3. `scripts/setup.sh` — installs dependencies (`npm ci`), `jq`, and Playwright's Chromium. It uses sudo only when `jq` or Chromium's system libraries are missing, and is safe to re-run.
 4. `npm run check && npm run test:e2e` — both should pass.
 5. `npm run dev`, then open the URL Vite prints (usually http://localhost:5173).
 
 `scripts/setup.sh` is the one environment definition: CI and Claude Code cloud sessions run it too.
+
+## Separate WSL distro for personal projects
+
+On Windows, this repo lives in its own WSL2 distro (`Ubuntu-24.04` here), separate from any work distro on the same PC. `npm install` scripts and agent shell commands run as your Linux user, with access to everything that user can read; a second distro gives a separate home folder, so a personal-project agent or npm package can't see work code or work credentials, and vice versa. This distro holds `dnd-tracker`, your personal git identity, `gh` login, Claude Code login, and (once added) Firebase login — nothing from work.
+
+To set one up: `wsl --install -d <distro>` (or `wsl --import` from a tarball) from Windows, then follow "Time to first commit" above inside it. Each distro is its own Linux user environment, so tools and logins (git, `gh`, Claude Code) are installed and signed in per distro.
+
+Known gotchas, not bugs to fix:
+
+- **Shared Windows drive:** every distro can still read and write `/mnt/c`, so keep credentials and sensitive files off it — this is a limitation of the split, not something distro separation removes.
+- **TLS-inspecting networks:** a `curl`-based install (e.g. fnm) can fail with "SSL certificate problem: self-signed certificate in certificate chain". Fix: copy the corporate CA cert from an already-working distro's `/usr/local/share/ca-certificates/` into the new one and run `sudo update-ca-certificates`.
+- **WSL interop:** calling a Windows `.exe` from inside a fresh distro (including VS Code's `code .`) can fail with "Exec format error" — WSL interop not registered, a known issue on systemd-enabled Ubuntu images. Fix: `sudo tee /etc/binfmt.d/WSLInterop.conf <<< ':WSLInterop:M::MZ::/init:PF'` then `sudo systemctl restart systemd-binfmt`. Interop stays enabled (`[interop] enabled=true`, the default) because VS Code's WSL extension needs it; that also means a distro can still launch another distro's binaries, which the split otherwise avoids — an accepted limitation, not one this setup closes.
+- **VS Code:** open the repo through the WSL extension while it's connected to the right distro. UI extensions (themes, icon packs) run in Windows and show up everywhere; workspace extensions (ESLint, language servers) run per-distro — `.vscode/extensions.json` prompts to install this repo's on first open, in any distro. Personal-taste UI settings carry over via VS Code Settings Sync.
+- **Claude Code connectors:** Trello, Google Drive, and Claude Docs access comes from claude.ai account-level connectors, synced into Claude Code automatically from whichever account is logged in (`claude mcp list` shows them prefixed `claude.ai *`). Nothing to register per distro — run `claude /login` with the same account and start a fresh session; the sync only happens at session start.
 
 ## Cloud sessions (Claude Code on the web)
 
