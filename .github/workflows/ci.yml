@@ -48,6 +48,7 @@ jobs:
       - run: npm run test:e2e
         env:
           BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          VITE_WISH_EMAIL: ${{ secrets.VITE_WISH_EMAIL }}
       # Compares this build's gzipped size against main's own last measurement
       # (uploaded below); a fork PR or this budget's own first run has none,
       # and the script degrades to reporting absolute sizes only.
