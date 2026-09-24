@@ -33,11 +33,17 @@
       "Bash(gh pr checks *)",
       "Bash(npm ls *)",
       "mcp__claude_ai_Trello__trelloReadBoard",
+      "mcp__Trello__trelloReadBoard",
       "mcp__claude_ai_Trello__trelloReadCard",
+      "mcp__Trello__trelloReadCard",
       "mcp__claude_ai_Trello__trelloReadChecklist",
+      "mcp__Trello__trelloReadChecklist",
       "mcp__claude_ai_Trello__trelloReadList",
+      "mcp__Trello__trelloReadList",
       "mcp__claude_ai_Trello__trelloReadMember",
-      "mcp__claude_ai_Trello__trelloSearch"
+      "mcp__Trello__trelloReadMember",
+      "mcp__claude_ai_Trello__trelloSearch",
+      "mcp__Trello__trelloSearch"
     ],
     "ask": [
       "Bash(gh pr merge *)",
@@ -50,10 +56,15 @@
       "Bash(npm un *)",
       "Bash(npx *)",
       "mcp__claude_ai_Trello__trelloWriteBoard",
+      "mcp__Trello__trelloWriteBoard",
       "mcp__claude_ai_Trello__trelloWriteChecklist",
+      "mcp__Trello__trelloWriteChecklist",
       "mcp__claude_ai_Trello__trelloWriteInbox",
+      "mcp__Trello__trelloWriteInbox",
       "mcp__claude_ai_Trello__trelloWriteList",
-      "mcp__claude_ai_Trello__trelloWritePlanner"
+      "mcp__Trello__trelloWriteList",
+      "mcp__claude_ai_Trello__trelloWritePlanner",
+      "mcp__Trello__trelloWritePlanner"
     ],
     "deny": [
       "Read(**/.env)",
@@ -89,7 +100,7 @@
         ]
       },
       {
-        "matcher": "mcp__claude_ai_Trello__trelloWriteCard",
+        "matcher": "mcp__claude_ai_Trello__trelloWriteCard|mcp__Trello__trelloWriteCard",
         "hooks": [
           {
             "type": "command",
