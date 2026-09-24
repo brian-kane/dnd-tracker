@@ -25,6 +25,23 @@ test('the preview sends the expected security headers', async ({ request }) => {
   expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin')
 })
 
+test('index.html revalidates but hashed assets cache for a year', async ({ request }) => {
+  if (!previewUrl) {
+    test.skip(true, 'PREVIEW_URL is only set for the Firebase preview deploy')
+    return
+  }
+
+  const indexResponse = await request.get(previewUrl)
+  expect(indexResponse.headers()['cache-control']).toBe('no-cache')
+
+  const html = await indexResponse.text()
+  const assetPath = html.match(/src="([^"]+\.js)"/)?.[1]
+  expect(assetPath, 'index.html should reference a built JS asset').toBeTruthy()
+
+  const assetResponse = await request.get(new URL(assetPath!, previewUrl).toString())
+  expect(assetResponse.headers()['cache-control']).toBe('public, max-age=31536000, immutable')
+})
+
 test('the app still renders under the CSP', async ({ page }) => {
   if (!previewUrl) {
     test.skip(true, 'PREVIEW_URL is only set for the Firebase preview deploy')
