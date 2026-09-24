@@ -38,11 +38,12 @@ One-time setup, in a browser:
      ```text
      registry.npmjs.org
      cdn.playwright.dev
+     storage.googleapis.com
      playwright.download.prss.microsoft.com
      archive.ubuntu.com
      security.ubuntu.com
      ```
-     GitHub doesn't need listing; it goes through its own proxy.
+     `cdn.playwright.dev` redirects the Chromium download to `storage.googleapis.com`, so both are needed. GitHub doesn't need listing; it goes through its own proxy.
    - **Environment variables:** none.
    - **Setup script:**
      ```bash
