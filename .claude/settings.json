@@ -27,10 +27,10 @@
       "Bash(git switch *)",
       "Bash(git pull --ff-only)",
       "Bash(git push *)",
-      "Bash(gh pr create *)",
-      "Bash(gh pr view *)",
+      "Bash(gh api repos/{owner}/{repo}/pulls *)",
+      "Bash(gh api repos/{owner}/{repo}/pulls/*)",
       "Bash(gh api -X PATCH repos/{owner}/{repo}/pulls/*)",
-      "Bash(gh pr checks *)",
+      "Bash(gh api repos/{owner}/{repo}/commits/*)",
       "Bash(npm ls *)",
       "mcp__claude_ai_Trello__trelloReadBoard",
       "mcp__Trello__trelloReadBoard",
@@ -46,7 +46,6 @@
       "mcp__Trello__trelloSearch"
     ],
     "ask": [
-      "Bash(gh pr merge *)",
       "Bash(npm install *)",
       "Bash(npm i *)",
       "Bash(npm ci *)",

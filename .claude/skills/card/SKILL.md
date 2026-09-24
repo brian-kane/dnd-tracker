@@ -64,14 +64,14 @@ If the card touches UI or behavior, run `npm run test:e2e` before opening the PR
 
 The PR title and body become the squash commit on main, so they follow the commit format in CLAUDE.md exactly. Branch commits are working history.
 
-Every step here uses `gh`, which works the same in a cloud session (via the GitHub App proxy — see the README's cloud section) as locally. If `command -v gh` fails, stop and report it rather than guessing at an alternative.
+Every step here uses `gh api` (REST), not `gh pr create/view/checks/merge` (GraphQL): the cloud GitHub proxy blocks GraphQL (`HTTP 403: GitHub GraphQL is not available from Claude Code sessions`) but allows REST, so one code path works locally and in the cloud. If `command -v gh` fails, stop and report it rather than guessing at an alternative.
 
 1. Subject line: `type(subject): outcome`, from the card, at most 72 chars (aim for 50).
    - type: Feature → `feat`, Bug → `fix`, Tooling → `chore` (or `ci`/`build` when the change is only CI or build config).
    - subject: the card title's subject, lowercased; outcome: the title's outcome.
    - Example: card "Lawrence: live HP that survives reload" (Feature) → `feat(lawrence): live HP that survives reload`.
 2. `git add` the files you changed (not `-A` blindly), commit with that subject line, then `git push -u origin HEAD`.
-3. `gh pr create --base main --title "<subject line>" --body-file <file>`, with the body written to a scratchpad file: bullets describing what changed, wrapped at 72 (continuation lines indented two spaces), a blank line, then the card link. No headings, no Done means, no AI footer.
+3. Write the PR body to a scratchpad file: bullets describing what changed, wrapped at 72 (continuation lines indented two spaces), a blank line, then the card link. No headings, no Done means, no AI footer.
 
    ```text
    - Add ...
@@ -80,9 +80,11 @@ Every step here uses `gh`, which works the same in a cloud session (via the GitH
    Card: <card link>
    ```
 
-   After creating it, `gh pr view --json body --jq .body` and compare to the scratchpad file. If GitHub appended anything (e.g. a "Generated with Claude Code" footer), `gh api -X PATCH repos/{owner}/{repo}/pulls/<number> -F body=@<file>` to strip it immediately.
+   Create the PR: `pr_number=$(gh api repos/{owner}/{repo}/pulls -f base=main -f head=<branch> -f title="<subject line>" -F body=@<file> --jq .number)`.
 
-4. Follow-up commits go on the same branch (`git push`). After each push, rewrite the body so it describes the whole change, not just the first commit: `gh api -X PATCH repos/{owner}/{repo}/pulls/<number> -F body=@<file>`. (`gh pr edit` fails on gh 2.46 with a Projects (classic) deprecation error.) Re-check the body the same way as step 3 and strip any added footer.
+   Then `gh api repos/{owner}/{repo}/pulls/$pr_number --jq .body` and compare to the scratchpad file. The GitHub App proxy re-appends a footer (e.g. "Generated with Claude Code") to every PR body write it makes, in both environments; try stripping it once with `gh api -X PATCH repos/{owner}/{repo}/pulls/$pr_number -F body=@<file>`, but if it comes straight back (routine in a cloud session), stop trying — the squash merge in step 7 sets its own commit message explicitly, so the footer never reaches main.
+
+4. Follow-up commits go on the same branch (`git push`). After each push, rewrite the body so it describes the whole change, not just the first commit: `gh api -X PATCH repos/{owner}/{repo}/pulls/$pr_number -F body=@<file>`. Re-check the body the same way as step 3.
 
 ## 6. Summarize
 
@@ -90,10 +92,11 @@ At most 5 bullets: the PR URL, what changed, what to look at or try in the brows
 
 ## 7. Ship (only when the user says "ship it")
 
-1. `gh pr checks --watch`. If a check fails, stop and report it; GitHub won't allow the merge anyway. "No checks reported" right after a push means CI hasn't registered yet — wait and rerun, don't merge. A PR body edit re-triggers `pr-title`; if step 5 edited the body after the last `--watch`, rerun it so the passing run you see is the re-triggered one.
-2. Save the PR body to a scratchpad file (`gh pr view --json body --jq .body`), then `gh pr merge --squash --delete-branch --subject "<PR title>" --body-file <file>`. "Ship it" is approval for this merge; the permission prompt is the one confirmation. `--subject` stops GitHub appending ` (#N)` to the title; passing the body explicitly makes the squash commit match the PR even if the API default differs. Branch deletion is best-effort: if it fails (e.g. already gone), that's not a merge failure.
-3. `git switch main && git pull --ff-only`, and confirm the squash commit is on main.
-4. Move the card to the top of **Playtest** (`trelloWriteCard` move; this asks, since the skill's pre-approval ended with its first turn), and say so. Never move it to **Done**; that's the user's call after real use.
+1. Get the PR's head commit: `sha=$(gh api repos/{owner}/{repo}/pulls/$pr_number --jq .head.sha)`. Poll the latest run of each check by name: `gh api repos/{owner}/{repo}/commits/$sha/check-runs --jq '.check_runs | group_by(.name) | map(sort_by(.started_at) | last) | map({name, status, conclusion})'`, until `check` and `pr-title` both show `status: completed`. If either's `conclusion` isn't `success`, stop and report it; GitHub won't allow the merge anyway. No check runs yet, right after a push, means CI hasn't registered — wait and repoll, don't merge. A PR body edit re-triggers `pr-title` at the same commit, adding a new run of that name; `group_by`/`last` above always resolves to that latest one, so no separate re-check step is needed.
+2. Save the PR body to a scratchpad file (`gh api repos/{owner}/{repo}/pulls/$pr_number --jq .body`), then squash-merge: `gh api -X PUT repos/{owner}/{repo}/pulls/$pr_number/merge -f merge_method=squash -f commit_title="<PR title>" -F commit_message=@<file>`. "Ship it" is approval for this merge; the permission prompt is the one confirmation. Passing `commit_title`/`commit_message` explicitly makes the squash commit match the PR body exactly, regardless of any footer the stored PR body picked up.
+3. Delete the branch, best-effort: `gh api -X DELETE repos/{owner}/{repo}/git/refs/heads/<branch>`. If it fails (e.g. already gone), that's not a merge failure.
+4. `git switch main && git pull --ff-only`, and confirm the squash commit is on main.
+5. Move the card to the top of **Playtest** (`trelloWriteCard` move; this asks, since the skill's pre-approval ended with its first turn), and say so. Never move it to **Done**; that's the user's call after real use.
 
 ## Gotchas
 
