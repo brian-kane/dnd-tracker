@@ -1,0 +1,28 @@
+name: Trello
+
+# Links the merge commit on the PR's Trello card. Plain pull_request, never
+# pull_request_target, so a PR from a fork never runs with this repo's secrets.
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+jobs:
+  merge-comment:
+    if: github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          COMMENT: 'Merged: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.event.pull_request.merge_commit_sha }}'
+          TRELLO_API_KEY: ${{ secrets.TRELLO_API_KEY }}
+          TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
+        run: node .github/scripts/trello-comment.mjs

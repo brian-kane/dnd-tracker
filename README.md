@@ -41,7 +41,18 @@ The app is hosted on Firebase Hosting (project `dnd-tracker-2c66f`, free Spark p
 - **PR previews:** after CI's `check` job passes, every PR from this repo is deployed to a preview channel, and the URL is posted as a comment on the PR. Previews expire after 7 days.
 - **Live:** merging to main deploys to the live site.
 
-Both deploys use the build that `check` produced and are defined in `.github/workflows/ci.yml`. The only credential is the `FIREBASE_SERVICE_ACCOUNT_DND_TRACKER_2C66F` GitHub secret.
+Both deploys use the build that `check` produced and are defined in `.github/workflows/ci.yml`. Their only credential is the `FIREBASE_SERVICE_ACCOUNT_DND_TRACKER_2C66F` GitHub secret.
+
+## Trello card comments
+
+If a PR body has a `Card: https://trello.com/c/...` line (`/card` adds it), CI comments on that card twice. After the first successful preview deploy, it posts the PR link and the preview URL. When the PR merges, it posts a link to the merge commit. PRs without a card line are skipped. The script is `.github/scripts/trello-comment.mjs`, run by `ci.yml` (preview) and `trello.yml` (merge). It uses the `TRELLO_API_KEY` and `TRELLO_TOKEN` GitHub secrets.
+
+To create or rotate them:
+
+1. At https://trello.com/power-ups/admin, create a new Power-Up (any name, e.g. `dnd-tracker-ci`, in your workspace), then open its **API key** tab and generate a key.
+2. Open this URL with your key filled in and click **Allow**. The page then shows the token:
+   `https://trello.com/1/authorize?expiration=never&scope=read,write&response_type=token&name=dnd-tracker-ci&key=<KEY>`
+3. In your own terminal, run `gh secret set TRELLO_API_KEY` and `gh secret set TRELLO_TOKEN`. Each command asks for the value; paste it at the prompt.
 
 ### One-time setup
 

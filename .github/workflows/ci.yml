@@ -59,11 +59,25 @@ jobs:
           path: dist
       - id: tools
         run: echo "version=$(jq -r '.devDependencies["firebase-tools"]' package.json)" >> "$GITHUB_OUTPUT"
-      - uses: FirebaseExtended/action-hosting-deploy@v0.11.0
+      - id: deploy
+        uses: FirebaseExtended/action-hosting-deploy@v0.11.0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DND_TRACKER_2C66F }}
           firebaseToolsVersion: ${{ steps.tools.outputs.version }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      # The PR body goes through env, never into the script text, so its
+      # contents can't run as shell.
+      - env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          COMMENT: |-
+            PR: ${{ github.event.pull_request.html_url }}
+            Preview: ${{ steps.deploy.outputs.details_url }}
+          TRELLO_API_KEY: ${{ secrets.TRELLO_API_KEY }}
+          TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
+        run: node .github/scripts/trello-comment.mjs
 
   deploy:
     needs: check
