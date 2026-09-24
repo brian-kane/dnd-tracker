@@ -45,7 +45,7 @@ Cards come from the board "DnD Tracker" (https://trello.com/b/3cscGaJR/dnd-track
 
 ## 3. Build
 
-- Before changing anything, branch from up-to-date main: `git switch main && git pull --ff-only && git switch -c <type>/<slug>`.
+- Before changing anything, branch from up-to-date main: `git fetch origin main && git switch -c <type>/<slug> origin/main`. This works the same whether the session started on `main` or on its own branch (a cloud session may start on a `claude/...` branch).
   - type: as in the commit message (step 5). slug: the subject plus 2–3 key words of the outcome, lowercase kebab-case.
   - Example: "Lawrence: live HP that survives reload" (Feature) → `feat/lawrence-live-hp`.
 - Implement in small steps, following the autonomy tiers. Anything in the "ask first" tier needs a yes, even mid-task.
@@ -63,6 +63,8 @@ If the card touches UI or behavior, run `npm run test:e2e` before opening the PR
 
 The PR title and body become the squash commit on main, so they follow the commit format in CLAUDE.md exactly. Branch commits are working history.
 
+Every step here uses `gh`, which works the same in a cloud session (via the GitHub App proxy — see the README's cloud section) as locally. If `command -v gh` fails, stop and report it rather than guessing at an alternative.
+
 1. Subject line: `type(subject): outcome`, from the card, at most 72 chars (aim for 50).
    - type: Feature → `feat`, Bug → `fix`, Tooling → `chore` (or `ci`/`build` when the change is only CI or build config).
    - subject: the card title's subject, lowercased; outcome: the title's outcome.
@@ -77,7 +79,9 @@ The PR title and body become the squash commit on main, so they follow the commi
    Card: <card link>
    ```
 
-4. Follow-up commits go on the same branch (`git push`). After each push, rewrite the body so it describes the whole change, not just the first commit: `gh api -X PATCH repos/{owner}/{repo}/pulls/<number> -F body=@<file>`. (`gh pr edit` fails on gh 2.46 with a Projects (classic) deprecation error.)
+   After creating it, `gh pr view --json body --jq .body` and compare to the scratchpad file. If GitHub appended anything (e.g. a "Generated with Claude Code" footer), `gh api -X PATCH repos/{owner}/{repo}/pulls/<number> -F body=@<file>` to strip it immediately.
+
+4. Follow-up commits go on the same branch (`git push`). After each push, rewrite the body so it describes the whole change, not just the first commit: `gh api -X PATCH repos/{owner}/{repo}/pulls/<number> -F body=@<file>`. (`gh pr edit` fails on gh 2.46 with a Projects (classic) deprecation error.) Re-check the body the same way as step 3 and strip any added footer.
 
 ## 6. Summarize
 
@@ -85,8 +89,8 @@ At most 5 bullets: the PR URL, what changed, what to look at or try in the brows
 
 ## 7. Ship (only when the user says "ship it")
 
-1. `gh pr checks --watch`. If a check fails, stop and report it; GitHub won't allow the merge anyway. "No checks reported" right after a push means CI hasn't registered yet — wait and rerun, don't merge.
-2. Save the PR body to a scratchpad file (`gh pr view --json body --jq .body`), then `gh pr merge --squash --delete-branch --subject "<PR title>" --body-file <file>`. "Ship it" is approval for this merge; the permission prompt is the one confirmation. `--subject` stops GitHub appending ` (#N)` to the title; passing the body explicitly makes the squash commit match the PR even if the API default differs.
+1. `gh pr checks --watch`. If a check fails, stop and report it; GitHub won't allow the merge anyway. "No checks reported" right after a push means CI hasn't registered yet — wait and rerun, don't merge. A PR body edit re-triggers `pr-title`; if step 5 edited the body after the last `--watch`, rerun it so the passing run you see is the re-triggered one.
+2. Save the PR body to a scratchpad file (`gh pr view --json body --jq .body`), then `gh pr merge --squash --delete-branch --subject "<PR title>" --body-file <file>`. "Ship it" is approval for this merge; the permission prompt is the one confirmation. `--subject` stops GitHub appending ` (#N)` to the title; passing the body explicitly makes the squash commit match the PR even if the API default differs. Branch deletion is best-effort: if it fails (e.g. already gone), that's not a merge failure.
 3. `git switch main && git pull --ff-only`, and confirm the squash commit is on main.
 4. Move the card to the top of **Playtest** (`trelloWriteCard` move; this asks, since the skill's pre-approval ended with its first turn), and say so. Never move it to **Done**; that's the user's call after real use.
 
