@@ -44,6 +44,7 @@ Engineering principles in `.claude/rules/engineering-principles.md` are always i
 - `src/storage/` — storage adapter interface and implementations.
 - `src/components/` — Vue components. `src/styles/` — global design tokens.
 - `e2e/` — Playwright acceptance tests, one or more per observable "Done means" bullet.
+- `scripts/setup.sh` — the one environment definition (Node check, `jq`, `npm ci`, Chromium), run by new machines, CI, and cloud sessions.
 - `.claude/` — agent settings, hooks, rules, and the `/card` skill.
 
 ## Architecture rules

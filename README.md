@@ -4,16 +4,56 @@ A personal D&D 5e (2014 rules) play companion for tracking a character's live st
 
 Built with Vue 3, TypeScript, and Vite.
 
-## Setup
+## Time to first commit
 
-Requires the Node version in `.node-version`.
+On a new machine (Linux or WSL2, Ubuntu-based):
 
-```sh
-npm install
-npm run dev
-```
+1. Install the Node version in `.node-version` with your version manager, plus `git` and the GitHub CLI; run `gh auth login`.
+2. `gh repo clone brian-kane/dnd-tracker && cd dnd-tracker`
+3. `scripts/setup.sh` — installs dependencies (`npm ci`), `jq`, and Playwright's Chromium. It uses sudo only when `jq` or Chromium's system libraries are missing, and is safe to re-run.
+4. `npm run check && npm run test:e2e` — both should pass.
+5. `npm run dev`, then open the URL Vite prints (usually http://localhost:5173).
 
-Then open the URL Vite prints (usually http://localhost:5173).
+`scripts/setup.sh` is the one environment definition: CI and Claude Code cloud sessions run it too.
+
+## Cloud sessions (Claude Code on the web)
+
+Work a card from a phone or browser with no local machine involved: a cloud session clones the repo onto an Anthropic-managed VM, runs `/card`, and pushes the branch; CI then builds the preview and comments on the Trello card. The session needs no Trello or Firebase secrets, since CI holds those.
+
+How the VM gets set up:
+
+- The environment's **setup script** runs `scripts/setup.sh` once, as root, and the result is cached for about 7 days.
+- Cloud sessions use the VM's Node 22, since the VM has no supported way to change its default Node. The script accepts any Node in the `engines` range of `package.json`; CI and local machines use the version in `.node-version`.
+- A `SessionStart` hook in `.claude/settings.json` runs the same script at the start of every cloud session (it does nothing locally), so a lockfile or Playwright change since the cache was built is picked up.
+- GitHub access goes through the cloud's GitHub proxy, using the Claude GitHub App: `gh` works with no token of your own, and `git push` only reaches the session's working branch.
+- `attribution.sessionUrl` is off in `.claude/settings.json`, so commits and PR bodies keep the format in `CLAUDE.md`.
+
+One-time setup, in a browser:
+
+1. Install the Claude GitHub App on this repo only: open https://github.com/apps/claude, click **Configure** (or **Install**), choose your account, select **Only select repositories**, pick `dnd-tracker`, and click **Save**.
+2. Open https://claude.ai/code and finish onboarding if asked (connect GitHub; skip `/web-setup`, which uploads a local `gh` token).
+3. Click the cloud icon with the environment name, in the row above the message box, then **Add cloud environment**:
+   - **Name:** `dnd-tracker`
+   - **Network access:** **Custom**. Leave **Also include default list of common package managers** unchecked, and set **Allowed domains** to:
+     ```text
+     registry.npmjs.org
+     cdn.playwright.dev
+     storage.googleapis.com
+     playwright.download.prss.microsoft.com
+     archive.ubuntu.com
+     security.ubuntu.com
+     ```
+     `cdn.playwright.dev` redirects the Chromium download to `storage.googleapis.com`, so both are needed. GitHub doesn't need listing; it goes through its own proxy.
+   - **Environment variables:** none.
+   - **Setup script:**
+     ```bash
+     #!/bin/bash
+     bash /home/user/dnd-tracker/scripts/setup.sh
+     ```
+     (The setup script runs from `/home/user`, with the repo cloned to `/home/user/dnd-tracker`.)
+   - Click **Create environment**.
+
+To work a card: at claude.ai/code (or the **Code** tab of the Claude app), pick the `brian-kane/dnd-tracker` repo, the `main` branch, and the `dnd-tracker` environment, then paste the `/card ...` text as the first message.
 
 ## Other commands
 
@@ -26,12 +66,6 @@ npm run test:unit  # run unit tests in watch mode
 npm run test:e2e   # build, then run Playwright acceptance tests (Chromium, headless)
 npm run lint       # lint and auto-fix
 npm run format     # format src/ with Prettier
-```
-
-Before the first `npm run test:e2e`, install Chromium and its system libraries once (uses sudo):
-
-```sh
-npx playwright install --with-deps chromium
 ```
 
 ## Hosting
