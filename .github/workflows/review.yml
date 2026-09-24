@@ -47,7 +47,26 @@ jobs:
             with your findings, or say explicitly that you found none.
             Findings are advisory, not blocking, so don't ask for changes
             or approve/request-changes.
+
+            Your only tools are Read, Grep, Glob, and Bash restricted to
+            `gh pr diff`, `gh pr view`, and `gh pr comment`. Pass the
+            comment body as a single quoted --body argument on the `gh pr
+            comment` command line directly; don't build it with `$(...)`,
+            heredocs, pipes, or temp files, since those inner commands are
+            checked separately and will be denied. If any tool call is
+            denied, don't retry it or a variant of it — immediately fall
+            back to a tool you have.
           claude_args: |
             --model claude-sonnet-5
-            --max-turns 10
+            --max-turns 15
             --allowedTools "Read,Grep,Glob,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*)"
+
+      - if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: >
+          gh pr comment "$PR_NUMBER" --body
+          "Automated review failed to complete: $RUN_URL. Comment
+          \`@claude review\` to retry."
