@@ -9,10 +9,7 @@ on:
   issue_comment:
     types: [created]
 
-permissions:
-  contents: read
-  pull-requests: write
-  id-token: write # required to fetch the GitHub App's OIDC token
+permissions: {}
 
 jobs:
   review:
@@ -24,12 +21,16 @@ jobs:
        github.event.comment.author_association == 'OWNER' &&
        contains(github.event.comment.body, '@claude review'))
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write # required to fetch the GitHub App's OIDC token
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event_name == 'issue_comment' && format('refs/pull/{0}/head', github.event.issue.number) || github.event.pull_request.head.sha }}
           fetch-depth: 1
-      - uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@8cf3482550831fb35a4fc3fbf7ca139cf8028b4c # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
