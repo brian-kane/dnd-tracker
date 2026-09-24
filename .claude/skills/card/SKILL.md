@@ -78,7 +78,7 @@ At most 5 bullets: the PR URL, what changed, what to look at or try in the brows
 1. `gh pr checks --watch`. If a check fails, stop and report it; GitHub won't allow the merge anyway. "No checks reported" right after a push means CI hasn't registered yet — wait and rerun, don't merge.
 2. Save the PR body to a scratchpad file (`gh pr view --json body --jq .body`), then `gh pr merge --squash --delete-branch --subject "<PR title>" --body-file <file>`. "Ship it" is approval for this merge; the permission prompt is the one confirmation. `--subject` stops GitHub appending ` (#N)` to the title; passing the body explicitly makes the squash commit match the PR even if the API default differs.
 3. `git switch main && git pull --ff-only`, and confirm the squash commit is on main.
-4. (Later: move the card to **Done** in Trello.)
+4. Remind the user to move the card to **Playtest** in Trello (it moves to **Done** only after real use). (Later: move it automatically.)
 
 ## Gotchas
 
