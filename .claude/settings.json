@@ -27,7 +27,8 @@
       "Bash(gh pr create *)",
       "Bash(gh pr view *)",
       "Bash(gh api -X PATCH repos/{owner}/{repo}/pulls/*)",
-      "Bash(gh pr checks *)"
+      "Bash(gh pr checks *)",
+      "Bash(npm ls *)"
     ],
     "ask": [
       "Bash(gh pr merge *)",
