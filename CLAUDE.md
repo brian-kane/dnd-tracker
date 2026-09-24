@@ -23,6 +23,7 @@ Engineering principles in `.claude/rules/engineering-principles.md` are always i
 - State via Vue reactivity in composables; no Pinia, no router. Vitest for the rules layer only; Playwright (Chromium only) for acceptance tests against the built app.
 - Persistence behind a storage adapter interface (local browser storage for now).
 - WSL2 natively, no Docker. Node version pinned in `.node-version`.
+- Hosted on Firebase Hosting (free Spark plan); see README for the deploy setup.
 
 ## Commands
 
@@ -59,4 +60,4 @@ Engineering principles in `.claude/rules/engineering-principles.md` are always i
 
 ## Parked (don't build yet)
 
-Firestore sync + Firebase Auth/Hosting, vite-plugin-pwa, phone support, Pinia/router, keyboard shortcuts, DM tools, JSON export/import.
+Firestore sync + Firebase Auth, vite-plugin-pwa, phone support, Pinia/router, keyboard shortcuts, DM tools, JSON export/import.

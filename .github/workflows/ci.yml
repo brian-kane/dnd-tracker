@@ -11,9 +11,11 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: .node-version
           cache: npm
@@ -21,7 +23,7 @@ jobs:
       # version the lockfile pins rather than the semver range.
       - id: playwright
         run: echo "version=$(jq -r '.packages["node_modules/@playwright/test"].version' package-lock.json)" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
@@ -29,6 +31,9 @@ jobs:
       # skips the browser download when the cache restored it.
       - run: scripts/setup.sh
       - run: npm run check
+      # Fails only on high/critical advisories; moderate ones are tracked in
+      # SECURITY.md instead of blocking every PR on a transitive dep.
+      - run: npm audit --audit-level=high
       # Builds dist (typecheck already ran in check) and runs the acceptance
       # tests against it. The deploy jobs ship this exact build. On a pull
       # request github.sha is GitHub's temporary merge commit, so the build
@@ -36,7 +41,7 @@ jobs:
       - run: npm run test:e2e
         env:
           BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: dist
           path: dist
@@ -52,22 +57,35 @@ jobs:
       checks: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: dist
           path: dist
       - id: tools
         run: echo "version=$(jq -r '.devDependencies["firebase-tools"]' package.json)" >> "$GITHUB_OUTPUT"
       - id: deploy
-        uses: FirebaseExtended/action-hosting-deploy@v0.11.0
+        uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0.11.0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DND_TRACKER_2C66F }}
           firebaseToolsVersion: ${{ steps.tools.outputs.version }}
-      - uses: actions/setup-node@v7
+      - id: playwright
+        run: echo "version=$(jq -r '.packages["node_modules/@playwright/test"].version' package-lock.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          node-version-file: .node-version
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - run: scripts/setup.sh
+      # Checks the headers firebase.json sends and that the app still renders
+      # under its CSP, against the preview `deploy` just created.
+      - run: npx playwright test e2e/security-headers.spec.ts
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.details_url }}
       # The PR body goes through env, never into the script text, so its
       # contents can't run as shell.
       - env:
@@ -88,15 +106,17 @@ jobs:
     concurrency:
       group: deploy-live
       cancel-in-progress: false
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: dist
           path: dist
       - id: tools
         run: echo "version=$(jq -r '.devDependencies["firebase-tools"]' package.json)" >> "$GITHUB_OUTPUT"
-      - uses: FirebaseExtended/action-hosting-deploy@v0.11.0
+      - uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0.11.0
         with:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DND_TRACKER_2C66F }}
           firebaseToolsVersion: ${{ steps.tools.outputs.version }}
