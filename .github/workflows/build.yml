@@ -1,0 +1,91 @@
+name: Build
+
+# Manually turns an approved card (one sitting in Up Next) into a PR, with no local
+# machine involved. Round 3's tracer bullet: automatic triggering and triage are later
+# cards. `fetch-card` is the only job holding Trello credentials; `build` never sees
+# them, so a misbehaving or compromised agent step can't read or write Trello.
+on:
+  workflow_dispatch:
+    inputs:
+      card:
+        description: Trello card URL (must be in Up Next)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-card:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          sparse-checkout: .github/scripts
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .node-version
+      - env:
+          CARD_URL: ${{ inputs.card }}
+          TRELLO_API_KEY: ${{ secrets.TRELLO_API_KEY }}
+          TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
+        run: node .github/scripts/trello-fetch-card.mjs
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: card
+          path: card.json
+          retention-days: 1
+
+  build:
+    needs: fetch-card
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write # to fetch the GitHub App's OIDC token, so the PR it opens triggers ci.yml (GITHUB_TOKEN-opened PRs don't)
+    steps:
+      # Full history: /card's branch and commit steps, and the changelog `build` reads.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: card
+      # The same setup a new machine or a Claude Code cloud session runs.
+      - run: scripts/setup.sh
+      - uses: anthropics/claude-code-action@8cf3482550831fb35a4fc3fbf7ca139cf8028b4c # v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Read card.json in the repo root: it holds the Trello card this run was
+            dispatched to build (name, desc, labels), already confirmed to be sitting
+            in Up Next. You have no Trello access in this job — don't look for or try
+            to use any Trello tool.
+
+            Follow `.claude/skills/card/SKILL.md` steps 2 onward (Understand & plan,
+            Build, Verify, Open the PR) and this repo's CLAUDE.md conventions, with
+            these differences for this unattended run:
+            - Skip step 1 (fetching and moving the card; already done for you) and
+              step 7 (Ship). Stop once the PR is open.
+            - Skip step 2's "stop and wait for approval" — dispatching this workflow
+              with an approved card's link is the approval.
+            - You're already on a full-history checkout of an up-to-date main; branch
+              from HEAD instead of re-fetching origin/main.
+            - If the card would need anything CLAUDE.md's "ask first" tier covers (a
+              data-model change, a new dependency, a folder-structure change, a
+              storage-format change, or anything touching CLAUDE.md or .claude/), or
+              anything the card lists as out of scope, stop without making that
+              change and say why in your final message instead of guessing.
+
+            `npm run test:e2e` needs `VITE_WISH_EMAIL`; it's already set for you.
+          claude_args: |
+            --model claude-sonnet-5
+            --max-turns 60
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(npm run check:*),Bash(npm run typecheck:*),Bash(npm test:*),Bash(npm run test:unit:*),Bash(npm run test:e2e:*),Bash(npm run lint:*),Bash(npm run format:*),Bash(npm run build:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git add:*),Bash(git commit:*),Bash(git switch:*),Bash(git push:*),Bash(gh api repos/{owner}/{repo}/pulls *),Bash(gh api repos/{owner}/{repo}/pulls/*),Bash(gh api -X PATCH repos/{owner}/{repo}/pulls/*)"
+        env:
+          VITE_WISH_EMAIL: ${{ secrets.VITE_WISH_EMAIL }}
