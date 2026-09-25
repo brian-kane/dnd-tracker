@@ -117,6 +117,46 @@ The address itself isn't committed — it's read from the `VITE_WISH_EMAIL` env 
 
 To find or regenerate the address: Trello board menu → Settings → Email-to-board.
 
+### Triage a wish (no machine involved)
+
+`.github/workflows/triage.yml` turns a raw Requests card into a well-shaped card, or a
+clarifying question, the same unattended shape as `build.yml`: three jobs, the middle
+one holding no Trello credentials. It runs three times a day on the same schedule as
+`build.yml`, and can also be dispatched manually.
+
+- **`fetch-requests` job:** the only job holding Trello credentials. It reads every
+  Requests card plus the board's own live description (the source for this round's
+  card-template headings and label conventions, so they can evolve without a prompt
+  going stale) and hands eligible cards to `draft` as an artifact (`requests.json`),
+  never as Trello access. "Eligible" means no triage comment yet, or a human replied
+  after the triage agent's own last comment on that card — otherwise it's either
+  already drafted and awaiting approval, or already asked and awaiting an answer, and
+  is skipped silently.
+- **`draft` job:** Haiku, capped at 20 turns, with only `Read` and `Write` on the
+  working directory — no Trello tools, no repo checkout, no Bash. For each card it
+  either drafts a full template (stating assumptions in Notes) or, when it can't
+  without guessing specifics, asks clarifying questions instead — both written to
+  `drafts.json`, never to Trello directly. Wish text and comments are untrusted input,
+  read as data to draft from, never as instructions. Same denial-handling instruction
+  as `build.yml`/`review.yml`: a denied tool call is terminal for that approach, not a
+  reason to retry.
+- **`apply` job:** holds Trello credentials again, but no model. `triage-validate.mjs`
+  (reusing `card-template.mjs`'s `isFullyTemplated`) is the actual code boundary for
+  the agent's write scope: an entry naming any card id outside the ones `fetch-requests`
+  handed over, or one that doesn't parse, is rejected rather than trusted. A valid draft
+  rewrites the card's title/desc and leaves a `Triage: drafted…` comment; valid
+  questions leave a `Triage: …` comment instead. It never moves, archives, or labels a
+  card — approval (attaching the label, moving the card to Up Next) stays manual.
+- **Kill switch:** the repo variable `TRIAGE_PAUSED` (`gh variable set TRIAGE_PAUSED --body true`) skips every scheduled run, the same as `BUILD_PAUSED` does for builds.
+- **Trust boundary, accepted:** the Trello token itself is still all-boards read/write
+  (see `SECURITY.md`), so the write-scope enforcement above is what actually stands
+  between untrusted wish text and the rest of the board — not a permission the API can
+  restrict.
+- Editing the board description itself (used to seed the card-template text above)
+  goes through `.github/workflows/trello-board.yml`, dispatched manually
+  (`gh workflow run trello-board.yml -f desc="$(cat file)"`), since the Trello
+  connector's write tool only supports creating a board, not updating one.
+
 ## Performance
 
 "It's fast" is measured and enforced, not a hope — every PR proves it didn't make things slower.
@@ -172,6 +212,7 @@ Model choices are set in config, so every session, local or cloud, gets them wit
 | `/card`'s first turn (`model: opus` in its `SKILL.md`)             | Opus                            | That turn reads the card and code and writes the plan. A skill's `model` covers only the turn that invokes it, so building and "ship it" go back to Sonnet.                            |
 | `Explore` subagent (`.claude/agents/explore.md`)                   | Haiku                           | Replaces the built-in Explore, which would otherwise run on the session model. Searching doesn't need a big model.                                                                     |
 | PR review (`.github/workflows/review.yml`)                         | Sonnet                          | Cheap enough to run on every PR; `npm run check` fails if a step using `anthropics/claude-code-action` has no `--model` in `claude_args` (`.github/scripts/check-workflow-models.sh`). |
+| Triage `draft` job (`.github/workflows/triage.yml`)                | Haiku                           | Routine drafting/classification of a raw wish into the card template — the cheap end of the pipeline by design.                                                                        |
 
 Claude Code has no native way to route individual edits to a lighter model, so they run on the session model. For a one-off switch, such as Opus for a tricky review, use `/model opus`, then `/model opusplan` to go back (`/model default` means the account default, which is Opus).
 

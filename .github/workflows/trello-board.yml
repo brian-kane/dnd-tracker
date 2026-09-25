@@ -1,0 +1,31 @@
+name: Trello Board
+
+# Manually dispatched: rewrites the DnD Tracker board's description. The Trello
+# connector's write tool only supports creating boards, not updating one (see
+# trello-update-board.mjs), so this is how a board-level text change actually lands
+# without doing it by hand in the Trello UI.
+on:
+  workflow_dispatch:
+    inputs:
+      desc:
+        description: The board's new full description text
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          sparse-checkout: .github/scripts
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .node-version
+      - env:
+          TRELLO_API_KEY: ${{ secrets.TRELLO_API_KEY }}
+          TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
+          BOARD_DESC: ${{ inputs.desc }}
+        run: node .github/scripts/trello-update-board.mjs
