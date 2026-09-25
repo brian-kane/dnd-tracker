@@ -157,7 +157,11 @@ one holding no Trello credentials. It runs three times a day on the same schedul
   board, not updating one) — Trello's own REST API has no such limit, so
   `.github/scripts/trello-update-board.mjs` is a one-off script, run locally with the
   same `TRELLO_API_KEY`/`TRELLO_TOKEN` the CI scripts use:
-  `TRELLO_API_KEY=... TRELLO_TOKEN=... node .github/scripts/trello-update-board.mjs <path to new description file>`.
+  `TRELLO_API_KEY=... TRELLO_TOKEN=... NODE_OPTIONS=--use-system-ca node .github/scripts/trello-update-board.mjs <path to new description file>`.
+  `NODE_OPTIONS=--use-system-ca` matters on a machine where TLS is intercepted (a
+  corporate proxy or antivirus, typically) — Node ships its own CA list and won't trust
+  that interception cert by default, even though `curl` and the browser do because they
+  read the OS trust store; this flag makes Node read it too.
 
 ## Performance
 
