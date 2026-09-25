@@ -63,13 +63,25 @@ jobs:
             or approve/request-changes.
 
             Your only tools are Read, Grep, Glob, and Bash restricted to
-            `gh pr diff`, `gh pr view`, and `gh pr comment`. Pass the
-            comment body as a single quoted --body argument on the `gh pr
-            comment` command line directly; don't build it with `$(...)`,
-            heredocs, pipes, or temp files, since those inner commands are
-            checked separately and will be denied. If any tool call is
-            denied, don't retry it or a variant of it — immediately fall
-            back to a tool you have.
+            plain `gh pr diff`, `gh pr view`, and `gh pr comment` calls —
+            no `$(...)`, heredocs, pipes, `;`, `&&`, or redirects, since
+            those inner commands are checked separately and will be
+            denied. `gh pr diff` already prints the full diff to your
+            output, so there's no need to redirect it to a file first;
+            `gh pr view --json files --jq '.files[].path'` lists changed
+            files without piping through other tools. Pass the comment
+            body as a single quoted --body argument on the `gh pr
+            comment` command line directly.
+
+            The checkout is main, not the PR branch, so don't install
+            dependencies, build, or run tests — you have no working copy
+            of the PR's code to run them against, and CI's own `check`
+            job already covers that. Review the diff as text.
+
+            If any tool call is denied, don't retry it or a variant of
+            it — immediately fall back to one of the allowed forms
+            above. Only stop and explain what you were blocked on if
+            none of them can do what you need.
           claude_args: |
             --model claude-sonnet-5
             --max-turns 15
