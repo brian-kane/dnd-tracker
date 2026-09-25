@@ -7,14 +7,16 @@
 // - CARD_URL set (manual dispatch): fetch that one card, refusing it if it isn't
 //   sitting in Up Next or isn't fully templated.
 // - CARD_URL unset (scheduled run): walk Up Next in order and pick the first card
-//   that's fully templated, has no open or merged PR yet, and hasn't already failed
-//   RETRY_CAP times — a closed, unmerged PR and a "no PR opened" run (the flag-no-pr
-//   comment left on the card) both count as a strike — flagging it with a Trello
-//   comment the first time it hits that cap instead of retrying it forever.
+//   that's fully templated, isn't marked "human-only" (a Done means only a human can
+//   satisfy), has no open or merged PR yet, and hasn't already failed RETRY_CAP times —
+//   a closed, unmerged PR and a "no PR opened" run (the flag-no-pr comment left on the
+//   card) both count as a strike — flagging it with a Trello comment the first time it
+//   hits that cap instead of retrying it forever.
 
 import { appendFile, writeFile } from 'node:fs/promises'
 import { BOARD_ID } from './lib/board.mjs'
 import { isFullyTemplated } from './lib/card-template.mjs'
+import { isHumanOnly } from './lib/human-only.mjs'
 import { countNoPrAttempts } from './lib/no-pr-comment.mjs'
 import { citedCardShortLink } from './lib/pr-card-link.mjs'
 import { commentOnce, createTrelloClient } from './lib/trello-client.mjs'
@@ -84,6 +86,7 @@ async function selectManualCard() {
 async function selectAutoCard() {
   const cards = await trello(`/lists/${UP_NEXT_LIST_ID}/cards?fields=${CARD_FIELDS}&labels=true`)
   const prStatus = await fetchPrStatus()
+  let humanOnlySkips = 0
 
   for (const card of cards) {
     const templated = isFullyTemplated(card)
@@ -97,23 +100,31 @@ async function selectAutoCard() {
       continue
     }
     const comments = await trello(`/cards/${card.id}/actions?filter=commentCard`)
+    if (isHumanOnly(comments)) {
+      console.log(`Skipping "${card.name}": marked human-only.`)
+      humanOnlySkips += 1
+      continue
+    }
     const strikes = status.closedUnmerged + countNoPrAttempts(comments)
     if (strikes >= RETRY_CAP) {
       console.log(`Skipping "${card.name}": ${strikes} strikes (closed PRs and/or no-PR attempts).`)
       await flagFailedCard(card, strikes)
       continue
     }
-    return card
+    return { card, humanOnlySkips }
   }
-  return null
+  return { card: null, humanOnlySkips }
 }
 
-const card = CARD_URL ? await selectManualCard() : await selectAutoCard()
+const { card, humanOnlySkips } = CARD_URL
+  ? { card: await selectManualCard(), humanOnlySkips: 0 }
+  : await selectAutoCard()
 
 if (GITHUB_OUTPUT) await appendFile(GITHUB_OUTPUT, `selected=${Boolean(card)}\n`)
 
 if (!card) {
-  console.log('No eligible card in Up Next; nothing to build.')
+  const skipNote = humanOnlySkips > 0 ? ` (${humanOnlySkips} skipped as human-only)` : ''
+  console.log(`No eligible card in Up Next${skipNote}; nothing to build.`)
   process.exit(0)
 }
 
