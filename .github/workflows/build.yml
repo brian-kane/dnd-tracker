@@ -60,7 +60,11 @@ jobs:
       contents: write
       pull-requests: write
       id-token: write # to fetch the GitHub App's OIDC token, so the PR it opens triggers ci.yml (GITHUB_TOKEN-opened PRs don't)
+    outputs:
+      pr_opened: ${{ steps.verify.outputs.pr_opened }}
     steps:
+      - id: run-meta
+        run: echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
       # Full history: /card's branch and commit steps, and the changelog `build` reads.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -100,6 +104,12 @@ jobs:
               change and say why in your final message instead of guessing.
 
             `npm run test:e2e` needs `VITE_WISH_EMAIL`; it's already set for you.
+
+            Your only tools are the ones listed in `--allowedTools` below. If any tool
+            call is denied, don't retry it or a variant of it — immediately fall back
+            to a tool you have, or stop and explain what you were blocked on in your
+            final message. There's no one here to answer an interactive prompt, so a
+            denial is terminal for that approach, not a reason to keep trying.
           claude_args: |
             --model claude-sonnet-5
             --max-turns 60
@@ -110,3 +120,31 @@ jobs:
         env:
           EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
         run: node .github/scripts/claude-run-report.mjs
+      - id: verify
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_STARTED_AT: ${{ steps.run-meta.outputs.started_at }}
+        run: node .github/scripts/verify-pr-opened.mjs
+
+  flag-no-pr:
+    needs: [fetch-card, build]
+    if: always() && needs.fetch-card.outputs.selected == 'true' && needs.build.outputs.pr_opened == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          sparse-checkout: .github/scripts
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: card
+      - env:
+          TRELLO_API_KEY: ${{ secrets.TRELLO_API_KEY }}
+          TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node .github/scripts/flag-no-pr.mjs
