@@ -138,6 +138,15 @@ Budgets started a little under measured values, so a regression shows up immedia
 
 Permissions in `.claude/settings.json` (under both connector tool names; see the cloud section): Trello reads are allowed; board, list, checklist, inbox, and planner writes always ask. `/card` pre-approves card writes for its first turn (its `allowed-tools`), and the `guard-trello.sh` hook makes every card write other than a move ask anyway, so creating, editing, or archiving cards always prompts.
 
+### Build from a card (no machine involved)
+
+`.github/workflows/build.yml` is a manually triggered ("Run workflow" on the Actions tab, or `gh workflow run build.yml -f card=<card URL>`) alternative to running `/card` yourself: it turns an approved card into a PR with no local machine, cloud session, or human present during the build.
+
+- **`fetch-card` job:** the only job holding Trello credentials. Fetches the card and fails unless it's sitting in **Up Next** — that's what "approved" means for this workflow — then hands it to `build` as an artifact (`card.json`), never as Trello access.
+- **`build` job:** holds `CLAUDE_CODE_OAUTH_TOKEN` and nothing else secret (no Trello token, no Firebase deploy secret). It follows `/card`'s build, verify, and open-PR steps without stopping for approval (the dispatch itself is the approval) and stops once the PR is open — it never ships. `--max-turns` and `--allowedTools` cap what it can do; anything outside that list is denied outright, since there's no one present to answer an interactive prompt.
+- The PR is opened with the Claude GitHub App's token (via OIDC, `id-token: write`), not the default `GITHUB_TOKEN` — a `GITHUB_TOKEN`-opened PR doesn't trigger other workflows, so this is what lets `ci.yml`'s `preview` job build and comment on the Trello card afterward.
+- Doesn't yet move the card to **Doing** or **Playtest**; that's still manual until a later card adds it.
+
 ## PR review
 
 Every PR gets one advisory review comment from Claude, checking the diff against `CLAUDE.md` and the engineering principles, before you look at it yourself. It's defined in `.github/workflows/review.yml`.
