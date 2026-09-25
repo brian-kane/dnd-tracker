@@ -16,7 +16,7 @@ On a new machine (Linux or WSL2, Ubuntu-based):
    - a Node version manager (e.g. [fnm](https://github.com/Schniz/fnm)) — install the version pinned in `.node-version`
    - [Claude Code](https://docs.claude.com/en/docs/claude-code/setup) — `npm install -g @anthropic-ai/claude-code`, then run `claude` and sign in (`/login` if it doesn't prompt)
 2. `gh repo clone brian-kane/dnd-tracker ~/code/dnd-tracker && cd ~/code/dnd-tracker` — this repo's convention is `~/code/<name>`, not `~/<name>`.
-3. `scripts/setup.sh` — installs dependencies (`npm ci`), `jq`, and Playwright's Chromium. It uses sudo only when `jq` or Chromium's system libraries are missing, and is safe to re-run.
+3. `scripts/setup.sh` — installs dependencies (`npm ci`), `jq`, `gh`, `bubblewrap`/`socat` (for Claude Code's Bash sandbox), and Playwright's Chromium. It uses sudo only when one of those is missing, and is safe to re-run.
 4. `npm run check && npm run test:e2e` — both should pass.
 5. `npm run dev`, then open the URL Vite prints (usually http://localhost:5173).
 

@@ -5,6 +5,10 @@
     "commit": "",
     "sessionUrl": false
   },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": false
+  },
   "permissions": {
     "allow": [
       "Bash(npm run check)",
