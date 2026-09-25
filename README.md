@@ -103,6 +103,20 @@ The app is hosted on Firebase Hosting (project `dnd-tracker-2c66f`, free Spark p
 
 Both deploys use the build that `check` produced and are defined in `.github/workflows/ci.yml`. Their only credential is the `FIREBASE_SERVICE_ACCOUNT_DND_TRACKER_2C66F` GitHub secret. See [SECURITY.md](SECURITY.md) for the full threat model and credentials inventory.
 
+## Wish intake
+
+The board's **Requests** list has a Trello email-to-board address. The app's "Send a wish" link opens a `mailto:` to that address with the subject pre-filled, so anyone can send an idea from their phone with no account or app. The board description also explains how to send a wish by plain email.
+
+The address itself isn't committed — it's read from the `VITE_WISH_EMAIL` env var, which Vite inlines into the build. The link doesn't render if it's unset, so a missing var degrades the feature instead of breaking the app.
+
+- **Local:** add it to `.env.local` (gitignored):
+  ```sh
+  VITE_WISH_EMAIL=<the Requests list's email-to-board address>
+  ```
+- **CI:** set it once with `gh secret set VITE_WISH_EMAIL` (asks for the value at the prompt) so the `check` job's build has it too.
+
+To find or regenerate the address: Trello board menu → Settings → Email-to-board.
+
 ## Performance
 
 "It's fast" is measured and enforced, not a hope — every PR proves it didn't make things slower.
