@@ -49,6 +49,10 @@ jobs:
         uses: anthropics/claude-code-action@8cf3482550831fb35a4fc3fbf7ca139cf8028b4c # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # PRs opened by our own build.yml are authored by the Claude
+          # GitHub App, a bot actor the action blocks by default. Naming
+          # only "claude" (not '*') keeps other Apps' PR/comment events out.
+          allowed_bots: claude
           prompt: |
             Review pull request #${{ steps.pr.outputs.number }}'s diff
             (`gh pr diff ${{ steps.pr.outputs.number }}`) against this
