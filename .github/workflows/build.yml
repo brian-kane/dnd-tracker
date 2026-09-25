@@ -1,24 +1,36 @@
 name: Build
 
-# Manually turns an approved card (one sitting in Up Next) into a PR, with no local
-# machine involved. Round 3's tracer bullet: automatic triggering and triage are later
-# cards. `fetch-card` is the only job holding Trello credentials; `build` never sees
-# them, so a misbehaving or compromised agent step can't read or write Trello.
+# Turns an approved card (fully templated, sitting in Up Next) into a PR, with no local
+# machine involved — dispatched manually with a card link, or on a schedule that picks
+# the top eligible card itself. `fetch-card` is the only job holding Trello credentials;
+# `build` never sees them, so a misbehaving or compromised agent step can't read or
+# write Trello.
 on:
   workflow_dispatch:
     inputs:
       card:
-        description: Trello card URL (must be in Up Next)
-        required: true
+        description: Trello card URL (must be in Up Next); leave empty to auto-pick
+        required: false
+  schedule:
+    # Three times a day; each run builds at most one card, capping it at three a day.
+    - cron: '0 */8 * * *'
 
 permissions:
   contents: read
 
+concurrency:
+  group: build
+  cancel-in-progress: false
+
 jobs:
   fetch-card:
+    if: github.event_name != 'schedule' || vars.BUILD_PAUSED != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pull-requests: read
+    outputs:
+      selected: ${{ steps.select.outputs.selected }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -26,12 +38,15 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: .node-version
-      - env:
+      - id: select
+        env:
           CARD_URL: ${{ inputs.card }}
           TRELLO_API_KEY: ${{ secrets.TRELLO_API_KEY }}
           TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node .github/scripts/trello-fetch-card.mjs
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - if: steps.select.outputs.selected == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: card
           path: card.json
@@ -39,6 +54,7 @@ jobs:
 
   build:
     needs: fetch-card
+    if: success() && needs.fetch-card.outputs.selected == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
