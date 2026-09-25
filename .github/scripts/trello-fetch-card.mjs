@@ -8,11 +8,13 @@
 //   sitting in Up Next or isn't fully templated.
 // - CARD_URL unset (scheduled run): walk Up Next in order and pick the first card
 //   that's fully templated, has no open or merged PR yet, and hasn't already failed
-//   RETRY_CAP times (closed, unmerged PRs citing it) — flagging it with a Trello
+//   RETRY_CAP times — a closed, unmerged PR and a "no PR opened" run (the flag-no-pr
+//   comment left on the card) both count as a strike — flagging it with a Trello
 //   comment the first time it hits that cap instead of retrying it forever.
 
 import { appendFile, writeFile } from 'node:fs/promises'
 import { isFullyTemplated } from './lib/card-template.mjs'
+import { countNoPrAttempts } from './lib/no-pr-comment.mjs'
 import { citedCardShortLink } from './lib/pr-card-link.mjs'
 import { commentOnce, createTrelloClient } from './lib/trello-client.mjs'
 
@@ -59,8 +61,8 @@ async function fetchPrStatus() {
   return status
 }
 
-async function flagFailedCard(card, closedUnmerged) {
-  const text = `Failed ${closedUnmerged} times (closed PRs, none merged); needs a human look.`
+async function flagFailedCard(card, strikes) {
+  const text = `Failed ${strikes} times (closed PRs and/or no-PR attempts); needs a human look.`
   if (await commentOnce(trello, card.id, text)) console.log(`Flagged card "${card.name}": ${text}`)
 }
 
@@ -94,9 +96,11 @@ async function selectAutoCard() {
       console.log(`Skipping "${card.name}": already has an open or merged PR.`)
       continue
     }
-    if (status.closedUnmerged >= RETRY_CAP) {
-      console.log(`Skipping "${card.name}": ${status.closedUnmerged} closed PRs, none merged.`)
-      await flagFailedCard(card, status.closedUnmerged)
+    const comments = await trello(`/cards/${card.id}/actions?filter=commentCard`)
+    const strikes = status.closedUnmerged + countNoPrAttempts(comments)
+    if (strikes >= RETRY_CAP) {
+      console.log(`Skipping "${card.name}": ${strikes} strikes (closed PRs and/or no-PR attempts).`)
+      await flagFailedCard(card, strikes)
       continue
     }
     return card

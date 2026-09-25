@@ -3,6 +3,7 @@
 // the card itself, not just in a GitHub Actions run someone has to think to check.
 
 import { readFile } from 'node:fs/promises'
+import { noPrCommentText } from './lib/no-pr-comment.mjs'
 import { commentOnce, createTrelloClient } from './lib/trello-client.mjs'
 
 const { TRELLO_API_KEY, TRELLO_TOKEN, RUN_URL, CARD_FILE } = process.env
@@ -11,7 +12,7 @@ if (!RUN_URL) throw new Error('RUN_URL is empty')
 
 const card = JSON.parse(await readFile(CARD_FILE ?? 'card.json', 'utf-8'))
 const trello = createTrelloClient(TRELLO_API_KEY, TRELLO_TOKEN)
-const text = `Automated build produced no PR: ${RUN_URL}`
+const text = noPrCommentText(RUN_URL)
 
 if (await commentOnce(trello, card.id, text)) {
   console.log(`Flagged card "${card.name}": ${text}`)
