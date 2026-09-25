@@ -38,6 +38,12 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: .node-version
+      - id: preflight
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WORKFLOW_FILE: .github/workflows/build.yml
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: node .github/scripts/preflight-workflow-matches-main.mjs
       - id: select
         env:
           CARD_URL: ${{ inputs.card }}
