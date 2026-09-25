@@ -38,6 +38,13 @@ if ! command -v gh >/dev/null; then
   as_root apt-get install -y gh
 fi
 
+# bubblewrap/socat: Claude Code's built-in Bash sandbox (sandbox.enabled in
+# .claude/settings.json) needs both on Linux/WSL2.
+if ! command -v bwrap >/dev/null || ! command -v socat >/dev/null; then
+  as_root apt-get update
+  as_root apt-get install -y bubblewrap socat
+fi
+
 # Dependencies: npm writes node_modules/.package-lock.json on install, so it is
 # newer than package-lock.json unless the lockfile changed since.
 if [[ ! node_modules/.package-lock.json -nt package-lock.json ]]; then
