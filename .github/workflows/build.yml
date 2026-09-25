@@ -105,11 +105,15 @@ jobs:
 
             `npm run test:e2e` needs `VITE_WISH_EMAIL`; it's already set for you.
 
-            Your only tools are the ones listed in `--allowedTools` below. If any tool
-            call is denied, don't retry it or a variant of it — immediately fall back
-            to a tool you have, or stop and explain what you were blocked on in your
-            final message. There's no one here to answer an interactive prompt, so a
-            denial is terminal for that approach, not a reason to keep trying.
+            Your only tools are the ones listed in `--allowedTools` below. If a tool
+            call is denied, don't retry it or a variant of it — first look for an
+            allowed tool that gets you the same result. For self-verification
+            specifically, `npm run check` already covers typechecking, tests, and
+            lint; don't reach for `node --test`, `python3`, or another ad hoc check
+            when it already answers the question. Only stop and explain what you were
+            blocked on in your final message if no allowed tool can do what you need.
+            There's no one here to answer an interactive prompt, so a denial is
+            terminal for that specific approach, not a reason to keep retrying it.
           claude_args: |
             --model claude-sonnet-5
             --max-turns 60
