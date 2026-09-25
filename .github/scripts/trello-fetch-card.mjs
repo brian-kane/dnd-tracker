@@ -13,12 +13,12 @@
 //   comment the first time it hits that cap instead of retrying it forever.
 
 import { appendFile, writeFile } from 'node:fs/promises'
+import { BOARD_ID } from './lib/board.mjs'
 import { isFullyTemplated } from './lib/card-template.mjs'
 import { countNoPrAttempts } from './lib/no-pr-comment.mjs'
 import { citedCardShortLink } from './lib/pr-card-link.mjs'
 import { commentOnce, createTrelloClient } from './lib/trello-client.mjs'
 
-const BOARD_ID = '6ab3e35b7e9b2eaeb388baf0' // DnD Tracker
 const UP_NEXT_LIST_ID = '6ab3e50d9f8a71acd51b0b5a' // Up Next, on that board
 const RETRY_CAP = 3
 const CARD_FIELDS = 'id,name,desc,idBoard,idList,shortLink,shortUrl,labels'

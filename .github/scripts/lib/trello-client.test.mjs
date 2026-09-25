@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { commentOnce } from './trello-client.mjs'
+import { commentOnce, updateBoardDescription } from './trello-client.mjs'
 
 function fakeTrello(existingComments) {
   const calls = []
@@ -33,4 +33,16 @@ test('still posts when only a different comment exists', async () => {
   const trello = fakeTrello([{ data: { text: 'something else' } }])
   const posted = await commentOnce(trello, 'card1', 'hello')
   assert.equal(posted, true)
+})
+
+test('updateBoardDescription PUTs the desc to the board', async () => {
+  const calls = []
+  const trello = async (path, init) => {
+    calls.push({ path, init })
+    return {}
+  }
+  await updateBoardDescription(trello, 'board1', 'new description')
+  assert.equal(calls.length, 1)
+  assert.match(calls[0].path, /^\/boards\/board1\?desc=new\+description$/)
+  assert.equal(calls[0].init.method, 'PUT')
 })
