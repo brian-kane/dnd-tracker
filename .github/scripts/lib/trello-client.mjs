@@ -22,3 +22,10 @@ export async function commentOnce(trello, cardId, text) {
   })
   return true
 }
+
+// Rewrites a board's description. The Trello connector's write tool only supports
+// creating boards, not updating one, so this is the only way to edit board-level text
+// (see README's "How this board works" note) without doing it by hand in the Trello UI.
+export async function updateBoardDescription(trello, boardId, desc) {
+  await trello(`/boards/${boardId}?${new URLSearchParams({ desc })}`, { method: 'PUT' })
+}

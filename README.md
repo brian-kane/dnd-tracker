@@ -153,9 +153,11 @@ one holding no Trello credentials. It runs three times a day on the same schedul
   between untrusted wish text and the rest of the board — not a permission the API can
   restrict.
 - Editing the board description itself (used to seed the card-template text above)
-  goes through `.github/workflows/trello-board.yml`, dispatched manually
-  (`gh workflow run trello-board.yml -f desc="$(cat file)"`), since the Trello
-  connector's write tool only supports creating a board, not updating one.
+  isn't something the Trello connector's write tool can do (it only supports creating a
+  board, not updating one) — Trello's own REST API has no such limit, so
+  `.github/scripts/trello-update-board.mjs` is a one-off script, run locally with the
+  same `TRELLO_API_KEY`/`TRELLO_TOKEN` the CI scripts use:
+  `TRELLO_API_KEY=... TRELLO_TOKEN=... node .github/scripts/trello-update-board.mjs <path to new description file>`.
 
 ## Performance
 
