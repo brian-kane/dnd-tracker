@@ -13,6 +13,8 @@
 
 import { appendFile, writeFile } from 'node:fs/promises'
 import { isFullyTemplated } from './lib/card-template.mjs'
+import { citedCardShortLink } from './lib/pr-card-link.mjs'
+import { commentOnce, createTrelloClient } from './lib/trello-client.mjs'
 
 const BOARD_ID = '6ab3e35b7e9b2eaeb388baf0' // DnD Tracker
 const UP_NEXT_LIST_ID = '6ab3e50d9f8a71acd51b0b5a' // Up Next, on that board
@@ -23,17 +25,7 @@ const { CARD_URL, TRELLO_API_KEY, TRELLO_TOKEN, GITHUB_TOKEN, GITHUB_REPOSITORY,
   process.env
 if (!TRELLO_API_KEY || !TRELLO_TOKEN) throw new Error('TRELLO_API_KEY or TRELLO_TOKEN is not set')
 
-// A header keeps the credentials out of URLs, which can end up in logs.
-const trelloHeaders = {
-  Authorization: `OAuth oauth_consumer_key="${TRELLO_API_KEY}", oauth_token="${TRELLO_TOKEN}"`,
-}
-
-async function trello(path, init) {
-  const res = await fetch(`https://api.trello.com/1${path}`, { ...init, headers: trelloHeaders })
-  if (!res.ok)
-    throw new Error(`${init?.method ?? 'GET'} ${path}: ${res.status} ${await res.text()}`)
-  return res.json()
-}
+const trello = createTrelloClient(TRELLO_API_KEY, TRELLO_TOKEN)
 
 // Maps a card's shortLink to whether it already has an open or merged PR, and how many
 // closed-unmerged PRs cite it. Reads the live pull list, not GitHub's search index,
@@ -55,12 +47,12 @@ async function fetchPrStatus() {
     const pulls = await res.json()
     if (pulls.length === 0) break
     for (const pr of pulls) {
-      const match = /^Card: https:\/\/trello\.com\/c\/([A-Za-z0-9]+)/m.exec(pr.body ?? '')
-      if (!match) continue
-      const entry = status.get(match[1]) ?? { active: false, closedUnmerged: 0 }
+      const shortLink = citedCardShortLink(pr.body)
+      if (!shortLink) continue
+      const entry = status.get(shortLink) ?? { active: false, closedUnmerged: 0 }
       if (pr.state === 'open' || pr.merged_at) entry.active = true
       else entry.closedUnmerged += 1
-      status.set(match[1], entry)
+      status.set(shortLink, entry)
     }
     if (pulls.length < 100) break
   }
@@ -69,12 +61,7 @@ async function fetchPrStatus() {
 
 async function flagFailedCard(card, closedUnmerged) {
   const text = `Failed ${closedUnmerged} times (closed PRs, none merged); needs a human look.`
-  const comments = await trello(`/cards/${card.id}/actions?filter=commentCard`)
-  if (comments.some((action) => action.data.text === text)) return
-  await trello(`/cards/${card.id}/actions/comments?${new URLSearchParams({ text })}`, {
-    method: 'POST',
-  })
-  console.log(`Flagged card "${card.name}": ${text}`)
+  if (await commentOnce(trello, card.id, text)) console.log(`Flagged card "${card.name}": ${text}`)
 }
 
 async function selectManualCard() {
