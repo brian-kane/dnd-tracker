@@ -74,7 +74,8 @@ jobs:
           name: card
       # The same setup a new machine or a Claude Code cloud session runs.
       - run: scripts/setup.sh
-      - uses: anthropics/claude-code-action@8cf3482550831fb35a4fc3fbf7ca139cf8028b4c # v1
+      - id: claude
+        uses: anthropics/claude-code-action@8cf3482550831fb35a4fc3fbf7ca139cf8028b4c # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
@@ -105,3 +106,7 @@ jobs:
             --allowedTools "Read,Edit,Write,Glob,Grep,Bash(npm run check:*),Bash(npm run typecheck:*),Bash(npm test:*),Bash(npm run test:unit:*),Bash(npm run test:e2e:*),Bash(npm run lint:*),Bash(npm run format:*),Bash(npm run build:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git add:*),Bash(git commit:*),Bash(git switch:*),Bash(git push:*),Bash(gh api repos/{owner}/{repo}/pulls *),Bash(gh api repos/{owner}/{repo}/pulls/*),Bash(gh api -X PATCH repos/{owner}/{repo}/pulls/*)"
         env:
           VITE_WISH_EMAIL: ${{ secrets.VITE_WISH_EMAIL }}
+      - if: always()
+        env:
+          EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+        run: node .github/scripts/claude-run-report.mjs
