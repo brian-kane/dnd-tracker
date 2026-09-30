@@ -54,6 +54,11 @@ jobs:
     outputs:
       drafted: ${{ steps.verify.outputs.drafted }}
     steps:
+      # Checkout first: it would otherwise clean requests.json out of the workspace.
+      # setup-node reads .node-version and the report step below runs a repo script.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          sparse-checkout: .github/scripts
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: requests
@@ -64,6 +69,9 @@ jobs:
         uses: anthropics/claude-code-action@8cf3482550831fb35a4fc3fbf7ca139cf8028b4c # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # The agent only reads/writes local JSON, so the job's own read-only token
+          # is enough; without this the action wants an OIDC token (id-token: write).
+          github_token: ${{ github.token }}
           prompt: |
             Read requests.json in the working directory: it holds the Requests-list
             wishes due for triage this run — each one's card id, title, raw wish text,
@@ -99,7 +107,8 @@ jobs:
             Use only a cardId that appears in requests.json; nothing else is read or
             written.
 
-            Your only tools are Read and Write, restricted to the working directory.
+            Your only tools are Read and a Write restricted to drafts.json in the
+            working directory.
             If a tool call is denied, don't retry it or a variant of it — there's no
             one here to answer an interactive prompt, so a denial is terminal for that
             approach. Stop and say what you were blocked on in your final message
@@ -107,7 +116,7 @@ jobs:
           claude_args: |
             --model claude-haiku-4-5
             --max-turns 20
-            --allowedTools "Read,Write"
+            --allowedTools "Read,Edit(./drafts.json)"
       - if: always()
         env:
           EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
