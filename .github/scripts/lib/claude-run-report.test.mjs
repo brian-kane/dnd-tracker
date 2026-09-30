@@ -52,3 +52,68 @@ test('formatReport with denials', () => {
 test('formatReport with no result', () => {
   assert.equal(formatReport({ found: false }), 'No result message found in the execution file.')
 })
+
+test('summarize carries the trimmed final message, and none when the result has no text', () => {
+  const success = {
+    type: 'result',
+    subtype: 'success',
+    result: '  Stopped: needs a storage format.\n',
+  }
+  assert.equal(summarize([success]).finalMessage, 'Stopped: needs a storage format.')
+  const maxTurns = { type: 'result', subtype: 'error_max_turns', num_turns: 61 }
+  assert.equal(summarize([maxTurns]).finalMessage, '')
+})
+
+test('formatReport prints the final message quoted line by line', () => {
+  const report = formatReport({
+    found: true,
+    subtype: 'success',
+    isError: false,
+    numTurns: 14,
+    totalCostUsd: 0.2467,
+    deniedGroups: [],
+    finalMessage: 'Stopped before coding.\nThe card needs a storage format.',
+  })
+  assert.match(
+    report,
+    /Final message \(agent text, untrusted\):\n> Stopped before coding\.\n> The card needs/,
+  )
+})
+
+test('formatReport says so when there is no final message', () => {
+  const summary = {
+    found: true,
+    subtype: 'error_max_turns',
+    numTurns: 61,
+    deniedGroups: [],
+    finalMessage: '',
+  }
+  assert.match(formatReport(summary), /No final message in the result\./)
+})
+
+test('formatReport truncates a long final message to 1000 characters', () => {
+  const report = formatReport({ found: true, deniedGroups: [], finalMessage: 'x'.repeat(5000) })
+  const quoted = report.split('\n').find((line) => line.startsWith('> x'))
+  assert.equal(quoted, `> ${'x'.repeat(1000)}…`)
+})
+
+// Deliberate: token-shaped text is only truncated, not redacted. GitHub's secret masking
+// covers registered secrets in logs; the job holds no secret worth pattern-matching for.
+test('formatReport leaves token-shaped and base64-shaped text as plain truncated text', () => {
+  const token = `ghp_${'A1b2C3d4E5'.repeat(4)}`
+  const blob = 'QUJD'.repeat(500)
+  const report = formatReport({ found: true, deniedGroups: [], finalMessage: `${token}\n${blob}` })
+  assert.ok(report.includes(`> ${token}`))
+  assert.ok(report.includes(`> ${blob.slice(0, 1000 - token.length - 1)}`))
+  assert.ok(!report.includes(blob))
+})
+
+test('formatReport keeps workflow-command lines in the final message inert', () => {
+  const report = formatReport({
+    found: true,
+    deniedGroups: [],
+    finalMessage: '::add-mask::abc\n##[error]boom\n::stop-commands::x',
+  })
+  for (const line of report.split('\n').slice(-3)) assert.match(line, /^> /)
+  assert.ok(!report.split('\n').some((line) => line.startsWith('::') || line.startsWith('##[')))
+})
