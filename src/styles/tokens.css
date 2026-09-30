@@ -35,3 +35,22 @@
   /* Minimum size for tappable controls */
   --control-min-size: 2.5rem;
 }
+
+:root[data-theme='dark'] {
+  --color-bg: #1b1a18;
+  --color-surface: #262420;
+  --color-border: #3d3a35;
+  --color-text: #ece7e0;
+  --color-text-muted: #a89f92;
+  --color-accent: #6fb8a0;
+  --color-danger: #e5877e;
+  --color-warning: #e0a94a;
+  --color-success: #7fc788;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family);
+}
