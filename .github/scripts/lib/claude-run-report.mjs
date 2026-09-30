@@ -1,11 +1,23 @@
-// Summarizes a Claude Code Action execution file's permission denials, so a
-// max-turns failure shows what got denied and retried without printing the full
-// transcript (tool inputs/outputs), which would land in this public repo's logs.
+// Summarizes a Claude Code Action execution file's permission denials and the agent's
+// final message, so a failed or no-PR run shows what got denied and why the agent
+// stopped without printing the full transcript (tool inputs/outputs), which would land
+// in this public repo's logs.
 
 const MAX_CALL_LENGTH = 300
+const MAX_FINAL_MESSAGE_LENGTH = 1000
 
-function truncate(text) {
-  return text.length > MAX_CALL_LENGTH ? `${text.slice(0, MAX_CALL_LENGTH)}…` : text
+function truncate(text, max = MAX_CALL_LENGTH) {
+  return text.length > max ? `${text.slice(0, max)}…` : text
+}
+
+// The agent's text can be shaped by untrusted wish or PR text, and the runner treats a
+// log line starting with `::` (or `##[`) as a workflow command. Quoting every line keeps
+// that text inert without altering it; secret masking is left to GitHub.
+function quote(text) {
+  return text
+    .split('\n')
+    .map((line) => `> ${line}`)
+    .join('\n')
 }
 
 export function findResultMessage(messages) {
@@ -34,6 +46,8 @@ export function summarize(messages) {
     numTurns: result.num_turns,
     totalCostUsd: result.total_cost_usd,
     deniedGroups: groupDenials(result.permission_denials ?? []),
+    // Failure subtypes (error_max_turns, ...) carry no `result` text.
+    finalMessage: typeof result.result === 'string' ? result.result.trim() : '',
   }
 }
 
@@ -48,6 +62,12 @@ export function formatReport(summary) {
   } else {
     lines.push('Denied tool calls (deduplicated, with retry counts):')
     for (const { call, count } of summary.deniedGroups) lines.push(`- ${count}x ${call}`)
+  }
+  if (summary.finalMessage) {
+    lines.push('Final message (agent text, untrusted):')
+    lines.push(quote(truncate(summary.finalMessage, MAX_FINAL_MESSAGE_LENGTH)))
+  } else {
+    lines.push('No final message in the result.')
   }
   return lines.join('\n')
 }
