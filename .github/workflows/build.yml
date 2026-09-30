@@ -120,9 +120,14 @@ jobs:
             blocked on in your final message if no allowed tool can do what you need.
             There's no one here to answer an interactive prompt, so a denial is
             terminal for that specific approach, not a reason to keep retrying it.
+          # The sandbox is off here on purpose: setup.sh installs bubblewrap, so the
+          # committed `sandbox.enabled` starts it, and on ubuntu-latest AppArmor blocks
+          # its user namespaces (`bwrap: loopback: Failed RTM_NEWADDR`). Every Bash call
+          # then fails and no unattended retry is allowed. See SECURITY.md.
           claude_args: |
             --model claude-sonnet-5
             --max-turns 60
+            --settings '{"sandbox":{"enabled":false}}'
             --allowedTools "Read,Edit,Write,Glob,Grep,Bash(npm run check:*),Bash(npm run typecheck:*),Bash(npm test:*),Bash(npm run test:unit:*),Bash(npm run test:e2e:*),Bash(npm run lint:*),Bash(npm run format:*),Bash(npm run build:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git add:*),Bash(git commit:*),Bash(git switch:*),Bash(git push:*),Bash(gh api repos/{owner}/{repo}/pulls *),Bash(gh api repos/{owner}/{repo}/pulls/*),Bash(gh api -X PATCH repos/{owner}/{repo}/pulls/*)"
         env:
           VITE_WISH_EMAIL: ${{ secrets.VITE_WISH_EMAIL }}
